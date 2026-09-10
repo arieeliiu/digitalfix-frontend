@@ -1,0 +1,41 @@
+// Estilos generales del componente: presentación, fuente y color del texto.
+:host {
+  display: block;
+  font-family: Arial, sans-serif;
+  color: #172033;
+}
+
+.bienvenida {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  box-sizing: border-box;
+  background: #f1f5f9;
+}
+
+.tarjeta-bienvenida {
+  width: 100%;
+  max-width: 640px;
+  padding: 40px;
+  box-sizing: border-box;
+  background: white;
+  border: 1px solid #dbe3ed;
+  border-radius: 16px;
+}
+
+.encabezado {
+  color: #2454a6;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+h1 {
+  margin: 16px 0;
+  font-size: clamp(36px, 8vw, 56px);
+}
+
+.descripcion {
+  color: #475569;
+  line-height: 1.6;
+}
