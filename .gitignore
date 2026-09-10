@@ -141,3 +141,10 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# Caché y archivos temporales generados por Angular.
+.angular/
+out-tsc/
+
+# Configuración local del editor.
+.vscode/
