@@ -17,6 +17,22 @@ Microsoft Entra ID ya se encuentran implementados.
 
 La comunicación con el BFF se implementará en una tarea independiente.
 
+## Autorización en el frontend
+
+- Obtención del access token para DigitalFix API mediante MSAL,
+  solicitando el scope delegado `access_as_user`.
+- Lectura de roles para mostrar las opciones correspondientes al usuario.
+- Ruta `/administracion` protegida mediante sesión iniciada,
+  rol `Admin` y presencia del scope `access_as_user`.
+- Páginas de acceso denegado y error de autenticación.
+
+Los roles definidos en Microsoft Entra ID son `Admin`, `Operador`
+y `Cliente`.
+
+Estas comprobaciones controlan la navegación del frontend.
+La validación del JWT y la autorización de las solicitudes a la API
+se implementarán en el BFF.
+
 ## Tecnologías
 
 - Angular 21.
@@ -76,6 +92,17 @@ Los archivos generados se guardan en dist/.
 ```powershell
 npm test -- --watch=false
 ```
+### Verificaciones realizadas
+
+- Compilación y pruebas automatizadas completadas correctamente.
+- Inicio de sesión con un usuario real con rol `Admin`.
+- Visualización del rol Administrador y acceso a `/administracion`.
+- Pruebas automatizadas del guard: acceso permitido, rol insuficiente,
+  ausencia de scope, sesión rechazada y fallo al consultar permisos.
+
+Queda pendiente verificar con usuarios reales los roles `Operador`
+y `Cliente`. Sus casos de rechazo en la ruta de administración
+se comprobaron mediante pruebas automatizadas.
 
 ## Estructura principal
 

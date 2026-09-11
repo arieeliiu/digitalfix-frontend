@@ -1,23 +1,32 @@
 <section aria-labelledby="titulo-inicio">
-  <h2 id="titulo-inicio">
-    Bienvenido a DigitalFix
-  </h2>
+  <h2 id="titulo-inicio">Bienvenido a DigitalFix</h2>
 
   <p>
     Sesión iniciada como
     <strong>{{ obtenerNombreUsuario() }}</strong>
   </p>
 
-  <button
-    type="button"
-    (click)="autenticacion.cerrarSesion()"
-  >
+  @if (autenticacion.cargandoAutorizacion()) {
+    <p>Consultando permisos...</p>
+  } @else if (autenticacion.mensajeError()) {
+    <p role="alert">{{ autenticacion.mensajeError() }}</p>
+  } @else {
+    @if (autenticacion.tieneRol('Admin')) {
+      <p>Rol: Administrador</p>
+    }
+    <!-- El guard vuelve a comprobar el acceso al abrir la página. -->
+    @if (autenticacion.permisos().includes('access_as_user')) {
+      <p><a routerLink="/administracion">Ir a Administración</a></p>
+    } @else if (autenticacion.tieneRol('Operador')) {
+      <p>Rol: Operador</p>
+    } @else if (autenticacion.tieneRol('Cliente')) {
+      <p>Rol: Cliente</p>
+    } @else {
+      <p role="alert">No tienes un rol asignado.</p>
+    }
+  }
+
+  <button type="button" (click)="autenticacion.cerrarSesion()">
     Cerrar sesión
   </button>
-
-  @if (autenticacion.mensajeError()) {
-    <p role="alert">
-      {{ autenticacion.mensajeError() }}
-    </p>
-  }
 </section>
