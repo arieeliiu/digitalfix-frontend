@@ -1,0 +1,43 @@
+<!-- Página pública de bienvenida y acceso a DigitalFix. -->
+<main class="bienvenida">
+  <section class="tarjeta-bienvenida">
+    <p class="encabezado">Gestión de mantenimiento eléctrico</p>
+
+    <h1>DigitalFix</h1>
+
+    <p class="descripcion">
+      Un espacio para organizar órdenes de trabajo y dar seguimiento
+      a los servicios de mantenimiento.
+    </p>
+
+    <!-- Cambia las acciones disponibles según el estado de autenticación. -->
+    @if (autenticacion.tieneCuentaActiva()) {
+      <p>Ya tienes una cuenta activa en esta aplicación.</p>
+
+      <a routerLink="/inicio">
+        Ir al inicio
+      </a>
+
+      <button
+        type="button"
+        (click)="autenticacion.cerrarSesion()"
+      >
+        Cerrar sesión
+      </button>
+    } @else {
+      <button
+        type="button"
+        (click)="autenticacion.iniciarSesion()"
+      >
+        Iniciar sesión
+      </button>
+    }
+
+    <!-- Informa errores ocurridos al iniciar o cerrar sesión. -->
+    @if (autenticacion.mensajeError()) {
+      <p role="alert">
+        {{ autenticacion.mensajeError() }}
+      </p>
+    }
+  </section>
+</main>

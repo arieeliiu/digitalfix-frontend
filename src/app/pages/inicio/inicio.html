@@ -1,0 +1,23 @@
+<section aria-labelledby="titulo-inicio">
+  <h2 id="titulo-inicio">
+    Bienvenido a DigitalFix
+  </h2>
+
+  <p>
+    Sesión iniciada como
+    <strong>{{ obtenerNombreUsuario() }}</strong>
+  </p>
+
+  <button
+    type="button"
+    (click)="autenticacion.cerrarSesion()"
+  >
+    Cerrar sesión
+  </button>
+
+  @if (autenticacion.mensajeError()) {
+    <p role="alert">
+      {{ autenticacion.mensajeError() }}
+    </p>
+  }
+</section>

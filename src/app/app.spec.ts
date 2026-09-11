@@ -19,16 +19,13 @@ describe('Componente principal de DigitalFix', () => {
     expect(aplicacion).toBeTruthy();
   });
 
-  // Comprueba que la pantalla muestre el nombre correcto.
-  it('deberia mostrar DigitalFix como titulo', async () => {
-    const entorno = TestBed.createComponent(App);
+  it('deberia incluir el contenedor de rutas', async () => {
+    const fixture = TestBed.createComponent(App);
+    await fixture.whenStable();
 
-    // Espera a que Angular termine de actualizar la vista.
-    await entorno.whenStable();
+    const elemento = fixture.nativeElement as HTMLElement;
 
-    const elemento = entorno.nativeElement as HTMLElement;
-    const titulo = elemento.querySelector('h1')?.textContent?.trim();
-
-    expect(titulo).toBe('DigitalFix');
+    // El componente principal actúa como contenedor de las páginas enrutadas.
+    expect(elemento.querySelector('router-outlet')).not.toBeNull();
   });
 });
