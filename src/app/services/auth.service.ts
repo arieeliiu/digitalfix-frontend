@@ -116,6 +116,7 @@ export class ServicioAutenticacion {
         return false;
       }
 
+      // Lee los claims para adaptar la interfaz; el BFF los validará.
       this.audiencia.set(claims.aud ?? '');
       this.permisos.set(claims.scp.split(' ').filter(Boolean));
       this.roles.set(claims.roles ?? []);

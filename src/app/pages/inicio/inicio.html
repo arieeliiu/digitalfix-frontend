@@ -11,16 +11,20 @@
   } @else if (autenticacion.mensajeError()) {
     <p role="alert">{{ autenticacion.mensajeError() }}</p>
   } @else {
-    @if (autenticacion.tieneRol('Admin')) {
+        @if (autenticacion.tieneRol('Admin')) {
       <p>Rol: Administrador</p>
-    }
-    <!-- El guard vuelve a comprobar el acceso al abrir la página. -->
-    @if (autenticacion.permisos().includes('access_as_user')) {
-      <p><a routerLink="/administracion">Ir a Administración</a></p>
+      <a routerLink="/administracion">Ir a Administración</a>
+
     } @else if (autenticacion.tieneRol('Operador')) {
       <p>Rol: Operador</p>
+
+      <!-- Aquí irán las opciones del operador cuando existan. -->
+
     } @else if (autenticacion.tieneRol('Cliente')) {
       <p>Rol: Cliente</p>
+
+      <!-- Aquí irán las opciones del cliente cuando existan. -->
+
     } @else {
       <p role="alert">No tienes un rol asignado.</p>
     }
