@@ -17,5 +17,9 @@ export const environment = {
     // Direcciones utilizadas mientras trabajamos localmente.
     redirectUri: 'http://localhost:4200',
     postLogoutRedirectUri: 'http://localhost:4200',
+
+    // Permiso delegado expuesto por DigitalFix API.
+    scopeApi:
+    'api://85329d90-58f8-4317-a820-452599b3b04c/access_as_user',
   },
 };

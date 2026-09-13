@@ -32,7 +32,7 @@ export function crearConfiguracionProteccionRutas(): MsalGuardConfiguration {
 
     authRequest: {
       // Solicita autenticación y datos básicos de identidad.
-      scopes: ['openid', 'profile'],
+      scopes: ['openid', 'profile', environment.entra.scopeApi],
     },
 
     // Crearemos esta ruta para mostrar errores de autenticación.
