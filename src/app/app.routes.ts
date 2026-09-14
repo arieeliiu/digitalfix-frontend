@@ -2,12 +2,14 @@ import { Routes } from '@angular/router';
 import { MsalGuard } from '@azure/msal-angular';
 
 import { PaginaAcceso } from './pages/acceso/acceso';
-import { PaginaInicio } from './pages/inicio/inicio';
 import { PaginaErrorAuth } from './pages/error-auth/error-auth';
+import { PaginaAccesoDenegado } from './pages/acceso-denegado/acceso-denegado';
+
+import { PaginaDashboard } from './pages/dashboard/dashboard';
+import { PaginaWorkOrders } from './pages/workorders/workorders';
+import { PaginaCatalog } from './pages/catalog/catalog';
 
 import { protegerPorRol } from './guards/roles.guard';
-import { PaginaAdministracion } from './pages/administracion/administracion';
-import { PaginaAccesoDenegado } from './pages/acceso-denegado/acceso-denegado';
 
 export const routes: Routes = [
   // Página pública desde donde el usuario puede iniciar sesión.
@@ -16,11 +18,27 @@ export const routes: Routes = [
     component: PaginaAcceso,
   },
 
-  // Solo permite entrar si MSAL confirma una sesión autenticada.
+  // Dashboard principal: accesible para todos los roles autenticados.
   {
-    path: 'inicio',
-    component: PaginaInicio,
+    path: 'dashboard',
+    component: PaginaDashboard,
     canActivate: [MsalGuard],
+  },
+
+  // Órdenes de trabajo: Admin, Supervisor y Cliente (cada rol ve lo que corresponde).
+  {
+    path: 'workorders',
+    component: PaginaWorkOrders,
+    canActivate: [protegerPorRol],
+    data: { roles: ['Admin', 'Supervisor', 'Cliente'] },
+  },
+
+  // Catálogo técnico: solo Admin y Supervisor.
+  {
+    path: 'catalog',
+    component: PaginaCatalog,
+    canActivate: [protegerPorRol],
+    data: { roles: ['Admin', 'Supervisor'] },
   },
 
   // Muestra un mensaje cuando la autenticación no puede completarse.
@@ -29,17 +47,20 @@ export const routes: Routes = [
     component: PaginaErrorAuth,
   },
 
-  // El guard comprueba la sesión, el scope y el rol de administrador.
-  {
-    path: 'administracion',
-    component: PaginaAdministracion,
-    canActivate: [protegerPorRol],
-    data: { roles: ['Admin'] },
-  },
   // Permite explicar el rechazo sin volver a ejecutar el guard de roles.
   {
     path: 'acceso-denegado',
     component: PaginaAccesoDenegado,
+  },
+
+  // Rutas antiguas redirigidas para no romper bookmarks.
+  {
+    path: 'inicio',
+    redirectTo: 'dashboard',
+  },
+  {
+    path: 'administracion',
+    redirectTo: 'dashboard',
   },
 
   // Cualquier dirección desconocida vuelve a la página pública.

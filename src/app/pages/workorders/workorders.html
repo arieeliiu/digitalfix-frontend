@@ -1,0 +1,135 @@
+<!-- Página de órdenes de trabajo. Admin y Supervisor ven todas; Cliente solo las suyas. -->
+<main class="pagina">
+
+  <!-- ── Encabezado ──────────────────────────────────────────────────────── -->
+  <header class="encabezado-pagina">
+    <div>
+      <a routerLink="/dashboard" class="volver">← Dashboard</a>
+      <h1>Órdenes de trabajo</h1>
+    </div>
+    <div class="acciones-header">
+      @if (puedeCrear()) {
+        <button type="button" class="btn btn-primario" (click)="mostrarFormulario = true">
+          + Nueva orden
+        </button>
+      }
+    </div>
+  </header>
+
+  <!-- ── Formulario nueva orden ──────────────────────────────────────────── -->
+  @if (mostrarFormulario) {
+    <section class="panel-formulario" aria-labelledby="titulo-nueva-orden">
+      <h2 id="titulo-nueva-orden" class="titulo-panel">Nueva orden de trabajo</h2>
+
+      <div class="campo">
+        <label for="descripcion-orden">Descripción del trabajo</label>
+        <textarea
+          id="descripcion-orden"
+          rows="3"
+          placeholder="Describe el servicio o problema a resolver..."
+          [(value)]="nuevaDescripcion"
+          (input)="nuevaDescripcion = $any($event.target).value"
+        ></textarea>
+      </div>
+
+      @if (mensajeFormulario) {
+        <p class="mensaje-error" role="alert">{{ mensajeFormulario }}</p>
+      }
+
+      <div class="acciones-formulario">
+        <button type="button" class="btn btn-primario" (click)="crearOrden()">
+          Crear orden
+        </button>
+        <button type="button" class="btn btn-secundario" (click)="cancelarFormulario()">
+          Cancelar
+        </button>
+      </div>
+    </section>
+  }
+
+  <!-- ── Carga / error ───────────────────────────────────────────────────── -->
+  @if (autenticacion.cargandoAutorizacion()) {
+    <p class="estado-carga">Cargando permisos...</p>
+  } @else if (autenticacion.mensajeError()) {
+    <p class="mensaje-error" role="alert">{{ autenticacion.mensajeError() }}</p>
+  } @else {
+
+    <!-- ── Tabla de órdenes ────────────────────────────────────────────── -->
+    <section aria-labelledby="titulo-lista">
+      <h2 id="titulo-lista" class="titulo-seccion">
+        @if (autenticacion.tieneRol('Cliente') && !autenticacion.tieneRol('Admin') && !autenticacion.tieneRol('Supervisor')) {
+          Mis órdenes
+        } @else {
+          Todas las órdenes
+        }
+      </h2>
+
+      @if (ordenesFiltradas.length === 0) {
+        <p class="sin-resultados">No hay órdenes registradas aún.</p>
+      } @else {
+        <div class="tabla-wrapper">
+          <table class="tabla">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Fecha</th>
+                @if (!autenticacion.tieneRol('Cliente') || autenticacion.tieneRol('Admin') || autenticacion.tieneRol('Supervisor')) {
+                  <th>Cliente</th>
+                }
+                <th>Descripción</th>
+                <th>Técnico</th>
+                <th>Estado</th>
+                @if (puedeCambiarEstado()) {
+                  <th>Acción</th>
+                }
+              </tr>
+            </thead>
+            <tbody>
+              @for (orden of ordenesFiltradas; track orden.id) {
+                <tr>
+                  <td><code>{{ orden.id }}</code></td>
+                  <td>{{ orden.fecha }}</td>
+                  @if (!autenticacion.tieneRol('Cliente') || autenticacion.tieneRol('Admin') || autenticacion.tieneRol('Supervisor')) {
+                    <td>{{ orden.cliente }}</td>
+                  }
+                  <td>{{ orden.descripcion }}</td>
+                  <td>{{ orden.tecnico ?? '—' }}</td>
+                  <td>
+                    <span class="badge badge-{{ orden.estado }}">
+                      {{ etiquetaEstado(orden.estado) }}
+                    </span>
+                  </td>
+                  @if (puedeCambiarEstado()) {
+                    <td>
+                      @if (siguienteEstado(orden.estado)) {
+                        <button
+                          type="button"
+                          class="btn btn-accion btn-sm"
+                          (click)="avanzarEstado(orden)"
+                        >
+                          {{ etiquetaSiguienteEstado(orden.estado) }}
+                        </button>
+                      } @else {
+                        <span class="sin-accion">—</span>
+                      }
+                    </td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+
+      <p class="nota-mock">
+        Datos de ejemplo — conectar con
+        @if (autenticacion.tieneRol('Cliente') && !autenticacion.tieneRol('Admin') && !autenticacion.tieneRol('Supervisor')) {
+          <code>GET /api/mis-ordenes</code>
+        } @else {
+          <code>GET /api/workorders</code>
+        }
+      </p>
+    </section>
+
+  }
+</main>
