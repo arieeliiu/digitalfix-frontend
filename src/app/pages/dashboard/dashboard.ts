@@ -53,11 +53,6 @@ export class PaginaDashboard implements OnInit {
     { id: 'OT-003', cliente: 'Mi Empresa', descripcion: 'Certificación instalación', estado: 'completada' },
   ];
 
-  protected obtenerNombreUsuario(): string {
-    const cuenta = this.autenticacion.obtenerCuentaActiva();
-    return cuenta?.name ?? cuenta?.username ?? 'Usuario';
-  }
-
   protected etiquetaEstado(estado: OrdenResumida['estado']): string {
     const mapa: Record<OrdenResumida['estado'], string> = {
       pendiente:  'Pendiente',

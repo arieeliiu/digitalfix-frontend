@@ -35,6 +35,26 @@ export class ServicioAutenticacion {
     return this.obtenerCuentaActiva() !== null;
   }
 
+  // Devuelve el nombre visible del usuario autenticado.
+  obtenerNombreUsuario(): string {
+    const cuenta = this.obtenerCuentaActiva();
+    return cuenta?.name ?? cuenta?.username ?? 'Usuario';
+  }
+
+  // Devuelve la etiqueta legible del primer rol asignado al usuario.
+  etiquetaRol(): string {
+    const mapa: Record<string, string> = {
+      Admin:      'Administrador',
+      Supervisor: 'Supervisor',
+      Cliente:    'Cliente',
+    };
+    for (const [rol, etiqueta] of Object.entries(mapa)) {
+      if (this.tieneRol(rol)) return etiqueta;
+    }
+    return 'Sin rol asignado';
+  }
+
+
   // Inicia sesión mediante una redirección a Microsoft Entra ID.
   iniciarSesion(): void {
     this.mensajeError.set('');

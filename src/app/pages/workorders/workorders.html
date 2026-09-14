@@ -8,6 +8,10 @@
       <h1>Órdenes de trabajo</h1>
     </div>
     <div class="acciones-header">
+      <div class="info-usuario">
+        <span class="nombre-usuario">{{ autenticacion.obtenerNombreUsuario() }}</span>
+        <span class="etiqueta-rol">{{ autenticacion.etiquetaRol() }}</span>
+      </div>
       @if (puedeCrear()) {
         <button type="button" class="btn btn-primario" (click)="mostrarFormulario = true">
           + Nueva orden
@@ -15,6 +19,7 @@
       }
     </div>
   </header>
+
 
   <!-- ── Formulario nueva orden ──────────────────────────────────────────── -->
   @if (mostrarFormulario) {

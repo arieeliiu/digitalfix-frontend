@@ -44,7 +44,29 @@ h1 {
 
 .acciones-header {
   display: flex;
-  gap: 8px;
+  align-items: center;
+  gap: 12px;
+}
+
+.info-usuario {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.nombre-usuario {
+  font-size: 14px;
+  font-weight: 600;
+  color: #172033;
+}
+
+.etiqueta-rol {
+  font-size: 11px;
+  color: #2454a6;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
 }
 
 // ── Panel formulario ─────────────────────────────────────────────────────────

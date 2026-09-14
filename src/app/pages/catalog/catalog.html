@@ -7,12 +7,19 @@
       <a routerLink="/dashboard" class="volver">← Dashboard</a>
       <h1>Catálogo técnico</h1>
     </div>
-    @if (soloAdmin()) {
-      <button type="button" class="btn btn-primario" disabled title="Próximamente: conectar con POST /api/catalog">
-        + Agregar
-      </button>
-    }
+    <div class="acciones-header">
+      <div class="info-usuario">
+        <span class="nombre-usuario">{{ autenticacion.obtenerNombreUsuario() }}</span>
+        <span class="etiqueta-rol">{{ autenticacion.etiquetaRol() }}</span>
+      </div>
+      @if (soloAdmin()) {
+        <button type="button" class="btn btn-primario" disabled title="Próximamente: conectar con POST /api/catalog">
+          + Agregar
+        </button>
+      }
+    </div>
   </header>
+
 
   <!-- ── Carga / error ───────────────────────────────────────────────────── -->
   @if (autenticacion.cargandoAutorizacion()) {

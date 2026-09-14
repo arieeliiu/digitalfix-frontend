@@ -8,7 +8,8 @@
       <h1>Dashboard</h1>
     </div>
     <div class="acciones-header">
-      <span class="nombre-usuario">{{ obtenerNombreUsuario() }}</span>
+      <span class="nombre-usuario">{{ autenticacion.obtenerNombreUsuario() }}</span>
+      <span class="etiqueta-rol">{{ autenticacion.etiquetaRol() }}</span>
       <button type="button" class="btn btn-secundario" (click)="autenticacion.cerrarSesion()">
         Cerrar sesión
       </button>
