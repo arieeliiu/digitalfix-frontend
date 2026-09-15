@@ -1,65 +1,22 @@
-# Frontend en EC2 con Docker
+# Frontend local con Docker y Nginx
 
-El Dockerfile compila Angular con Node 24 y npm ci; la imagen final sirve el
-contenido de dist/digitalfix-frontend/browser mediante Nginx en el puerto 80.
-La URL de Gateway se incorpora desde src/environments/environment.ts al compilar.
-Cambiarla requiere reconstruir la imagen; docker run -e no modifica el JavaScript.
+El nombre histórico de este archivo se conserva para no romper enlaces.
+El frontend se ejecuta en el equipo local mediante http://localhost.
 
-## Construir y ejecutar
-
-En la EC2 del frontend, desde la raíz del repositorio actualizado:
-
-```bash
-sudo docker build -t digitalfix-frontend:local .
-sudo docker run -d --name digitalfix-frontend --restart unless-stopped -p 80:80 digitalfix-frontend:local
+```powershell
+ docker compose up -d --build
+ docker compose exec frontend nginx -t
+ curl.exe -i http://localhost/healthz
+ curl.exe -I http://localhost/workorders
 ```
 
-El puerto 80 del host debe estar libre. No hace falta publicar 4200.
-Para reconstruir una versión posterior, primero compilar y luego reemplazar
-solo el contenedor de este frontend:
+El compose publica 80:80. Registrar http://localhost como redirect URI SPA en
+Entra; redirectUri y postLogoutRedirectUri toman window.location.origin.
+Nginx sirve los archivos Angular y permite recargar rutas SPA.
+El navegador envía las solicitudes API directamente a Gateway con MSAL.
 
-```bash
-sudo docker build -t digitalfix-frontend:local .
-sudo docker stop digitalfix-frontend
-sudo docker rm digitalfix-frontend
-sudo docker run -d --name digitalfix-frontend --restart unless-stopped -p 80:80 digitalfix-frontend:local
-```
+Para detenerlo: `docker compose down`. Para actualizar: `docker compose up -d --build`.
+El puerto 80 debe estar libre y Docker Desktop debe estar iniciado con Linux containers.
+La URL de Gateway se incorpora al compilar, no se modifica con docker run -e.
 
-## Comprobación de Nginx
-
-```bash
-sudo docker exec digitalfix-frontend nginx -t
-sudo docker ps
-curl -i http://localhost/healthz
-curl -I http://localhost/dashboard
-sudo docker logs --tail 50 digitalfix-frontend
-```
-
-healthz responde 200 con ok y /dashboard devuelve index.html con 200. Estas
-comprobaciones demuestran que el servidor entrega archivos, no el login ni el BFF.
-
-## HTTPS, Entra y Gateway
-
-Este contenedor escucha HTTP en 80. Abrir 443 en el Security Group no configura
-TLS ni instala un certificado. Para usar MSAL desde una dirección pública se
-necesita HTTPS válido, por ejemplo un balanceador/proxy con certificado que
-termine TLS y reenvíe al puerto 80 del contenedor.
-
-El frontend toma redirectUri y postLogoutRedirectUri de window.location.origin.
-Registrar el origen HTTPS real (ejemplo: https://app.tudominio.cl) en Entra ID:
-DigitalFix Frontend → Authentication → Single-page application → Redirect URIs.
-El registro debe coincidir con el origen donde se abre Angular. HTTP localhost
-es una excepción de desarrollo; HTTP en una IP pública no sustituye HTTPS.
-
-En Gateway, añadir ese origen HTTPS a CORS y permitir GET, POST, OPTIONS y los
-headers Authorization y Content-Type. El preflight OPTIONS debe responder 2xx
-sin JWT; en la última comprobación devolvía 401 y queda pendiente corregirlo.
-
-El navegador llama directamente a:
-https://9ijsvq2s6j.execute-api.us-east-1.amazonaws.com
-Nginx sirve Angular; no funciona como proxy del BFF.
-
-## Referencias
-
-- https://docs.docker.com/build/building/multi-stage/
-- https://learn.microsoft.com/en-us/entra/identity-platform/reply-url
+Ver [despliegue completo](../../digitalfix-ms-bff/DEPLOYMENT.md).
