@@ -1,0 +1,189 @@
+<!-- Dashboard principal — muestra vistas distintas según el rol del usuario. -->
+<main class="pagina">
+
+  <!-- ── Encabezado ──────────────────────────────────────────────────────── -->
+  <header class="encabezado-pagina">
+    <div>
+      <p class="subtitulo">DigitalFix</p>
+      <h1>Dashboard</h1>
+    </div>
+    <div class="acciones-header">
+      <span class="nombre-usuario">{{ autenticacion.obtenerNombreUsuario() }}</span>
+      <span class="etiqueta-rol">{{ autenticacion.etiquetaRol() }}</span>
+      <button type="button" class="btn btn-secundario" (click)="autenticacion.cerrarSesion()">
+        Cerrar sesión
+      </button>
+    </div>
+  </header>
+
+  @if (estadoConexion()) {
+    <p class="estado-carga" role="status">{{ estadoConexion() }}</p>
+  }
+  @if (errorConexion()) {
+    <p class="mensaje-error" role="alert">{{ errorConexion() }}</p>
+  }
+
+  <!-- ── Carga de permisos ───────────────────────────────────────────────── -->
+  @if (autenticacion.cargandoAutorizacion()) {
+    <p class="estado-carga">Cargando permisos...</p>
+  } @else if (autenticacion.mensajeError()) {
+    <p class="mensaje-error" role="alert">{{ autenticacion.mensajeError() }}</p>
+  } @else {
+
+    <!-- ── Nav de módulos ────────────────────────────────────────────────── -->
+    <nav class="nav-modulos" aria-label="Módulos de la aplicación">
+      <a routerLink="/workorders"
+         class="nav-enlace"
+         [class.oculto]="!autenticacion.tieneRol('Admin') && !autenticacion.tieneRol('Operador') && !autenticacion.tieneRol('Cliente')">
+        Órdenes de trabajo
+      </a>
+      <a routerLink="/catalog"
+         class="nav-enlace"
+         [class.oculto]="!autenticacion.tieneRol('Admin') && !autenticacion.tieneRol('Operador') && !autenticacion.tieneRol('Cliente')">
+        Catálogo técnico
+      </a>
+    </nav>
+
+    <!-- ════════════════════════════════════════════════════════════════════
+         Vista ADMIN — KPIs de la red
+         ════════════════════════════════════════════════════════════════════ -->
+    @if (autenticacion.tieneRol('Admin')) {
+      <section aria-labelledby="titulo-kpis">
+        <h2 id="titulo-kpis" class="titulo-seccion">KPIs de la red</h2>
+
+        <div class="grilla-kpis">
+          @for (kpi of kpisAdmin; track kpi.etiqueta) {
+            <article class="tarjeta-kpi">
+              <p class="kpi-valor">
+                {{ kpi.valor }}<span class="kpi-unidad">{{ kpi.unidad }}</span>
+              </p>
+              <p class="kpi-etiqueta">{{ kpi.etiqueta }}</p>
+            </article>
+          }
+        </div>
+
+        <p class="nota-mock">
+          Datos de ejemplo — conectar con <code>GET /api/kpis</code>
+        </p>
+      </section>
+    }
+
+    <!-- ════════════════════════════════════════════════════════════════════
+         Vista SUPERVISOR — Órdenes por asignar y en terreno
+         ════════════════════════════════════════════════════════════════════ -->
+    @if (autenticacion.tieneRol('Operador')) {
+      <section aria-labelledby="titulo-ordenes-supervisor">
+        <h2 id="titulo-ordenes-supervisor" class="titulo-seccion">Órdenes activas</h2>
+
+        <div class="grupos-ordenes">
+
+          <!-- Pendientes de asignar -->
+          <div>
+            <h3 class="subtitulo-grupo">Por asignar</h3>
+            <table class="tabla">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Cliente</th>
+                  <th>Descripción</th>
+                  <th>Acción</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (orden of ordenesSupervisor; track orden.id) {
+                  @if (orden.estado === 'pendiente') {
+                    <tr>
+                      <td><code>{{ orden.id }}</code></td>
+                      <td>{{ orden.cliente }}</td>
+                      <td>{{ orden.descripcion }}</td>
+                      <td>
+                        <a [routerLink]="['/workorders']" class="btn btn-primario btn-sm">
+                          Asignar
+                        </a>
+                      </td>
+                    </tr>
+                  }
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <!-- En terreno -->
+          <div>
+            <h3 class="subtitulo-grupo">En terreno</h3>
+            <table class="tabla">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Cliente</th>
+                  <th>Técnico</th>
+                  <th>Descripción</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (orden of ordenesSupervisor; track orden.id) {
+                  @if (orden.estado === 'en_terreno') {
+                    <tr>
+                      <td><code>{{ orden.id }}</code></td>
+                      <td>{{ orden.cliente }}</td>
+                      <td>{{ orden.tecnico }}</td>
+                      <td>{{ orden.descripcion }}</td>
+                    </tr>
+                  }
+                }
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+
+        <p class="nota-mock">
+          Datos de ejemplo — conectar con <code>GET /api/workorders?estado=pendiente,en_terreno</code>
+        </p>
+      </section>
+    }
+
+    <!-- ════════════════════════════════════════════════════════════════════
+         Vista CLIENTE — Últimas órdenes propias
+         ════════════════════════════════════════════════════════════════════ -->
+    @if (autenticacion.tieneRol('Cliente')) {
+      <section aria-labelledby="titulo-mis-ordenes">
+        <h2 id="titulo-mis-ordenes" class="titulo-seccion">Mis últimas órdenes</h2>
+
+        <div class="lista-ordenes">
+          @for (orden of ordenesCliente; track orden.id) {
+            <article class="tarjeta-orden">
+              <div class="orden-info">
+                <code class="orden-id">{{ orden.id }}</code>
+                <p class="orden-descripcion">{{ orden.descripcion }}</p>
+                @if (orden.tecnico) {
+                  <p class="orden-tecnico">Técnico: {{ orden.tecnico }}</p>
+                }
+              </div>
+              <span class="badge badge-{{ orden.estado }}">
+                {{ etiquetaEstado(orden.estado) }}
+              </span>
+            </article>
+          }
+        </div>
+
+        <a routerLink="/workorders" class="btn btn-primario">
+          Ver todas mis órdenes
+        </a>
+
+        <p class="nota-mock">
+          Datos de ejemplo — conectar con <code>GET /api/mis-ordenes?limit=3</code>
+        </p>
+      </section>
+    }
+
+    <!-- ── Sin rol reconocido ──────────────────────────────────────────── -->
+    @if (!autenticacion.tieneRol('Admin') && !autenticacion.tieneRol('Operador') && !autenticacion.tieneRol('Cliente')) {
+      <p role="alert" class="mensaje-error">
+        Tu cuenta no tiene un rol asignado en DigitalFix.
+        Contacta al administrador del sistema.
+      </p>
+    }
+
+  }
+</main>

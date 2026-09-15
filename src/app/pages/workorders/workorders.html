@@ -1,0 +1,52 @@
+<main class="pagina">
+  <header class="encabezado-pagina">
+    <div><a routerLink="/dashboard" class="volver">← Dashboard</a><h1>Mis órdenes de trabajo</h1></div>
+    <button type="button" class="btn btn-secundario" (click)="cargar()" [disabled]="cargando() || guardando() || consultando()">Actualizar</button>
+  </header>
+  @if (cargando()) { <p role="status">Cargando servicios y órdenes...</p> }
+  @if (error()) { <p class="mensaje-error" role="alert">{{ error() }}</p> }
+  @if (mensaje()) { <p role="status">{{ mensaje() }}</p> }
+  @if (!cargando()) {
+    <section class="formulario-orden" aria-labelledby="nueva-orden">
+      <h2 id="nueva-orden">Nueva orden</h2>
+      @if (servicios().length === 0) { <p>No hay servicios disponibles para crear una orden.</p> }
+      <form #form="ngForm" (ngSubmit)="crear()">
+        <fieldset [disabled]="guardando() || servicios().length === 0">
+          <label for="servicio">Servicio</label>
+          <select id="servicio" name="servicio" [(ngModel)]="servicioId" required>
+            <option [ngValue]="null">Selecciona un servicio</option>
+            @for (servicio of servicios(); track servicio.id) {
+              <option [ngValue]="servicio.id">{{ servicio.nombre }} — {{ servicio.tarifa | currency:'CLP':'symbol-narrow':'1.0-0' }}</option>
+            }
+          </select>
+          <label for="descripcion">Descripción del trabajo</label>
+          <textarea id="descripcion" name="descripcion" [(ngModel)]="descripcion" required maxlength="1000" rows="3"></textarea>
+          <label for="direccion">Dirección</label>
+          <input id="direccion" name="direccion" [(ngModel)]="direccion" required maxlength="300" />
+          <button type="submit" class="btn btn-primario" [disabled]="form.invalid || !descripcion.trim() || !direccion.trim() || consultando()">
+            {{ guardando() ? 'Guardando...' : 'Crear orden' }}
+          </button>
+        </fieldset>
+      </form>
+    </section>
+    <h2>Órdenes registradas</h2>
+    @if (ordenes().length === 0 && !error()) { <p>Aún no tienes órdenes.</p> }
+    @if (ordenes().length > 0) {
+      <div class="tabla-contenedor"><table class="tabla">
+        <thead><tr><th>Orden</th><th>Descripción</th><th>Estado</th><th>Fecha</th><th>Detalle</th></tr></thead>
+        <tbody>@for (orden of ordenes(); track orden.id) {
+          <tr><td>#{{ orden.id }}</td><td>{{ orden.descripcion }}</td><td>{{ orden.estado }}</td><td>{{ orden.fechaCreacion | date:'dd/MM/yyyy HH:mm' }}</td>
+            <td><button type="button" class="btn btn-secundario" (click)="consultar(orden.id)" [disabled]="consultando() || guardando()">Consultar</button></td></tr>
+        }</tbody>
+      </table></div>
+    }
+    @if (consultando()) { <p role="status">Consultando orden...</p> }
+    @if (seleccionada(); as orden) {
+      <section class="formulario-orden" aria-labelledby="detalle-orden">
+        <h2 id="detalle-orden">Orden #{{ orden.id }}</h2>
+        <p>{{ orden.descripcion }}</p><p>Dirección: {{ orden.direccion }}</p>
+        <p>Estado: {{ orden.estado }}</p><p>Servicio: #{{ orden.servicioId }}</p>
+      </section>
+    }
+  }
+</main>

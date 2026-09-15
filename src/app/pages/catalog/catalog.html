@@ -1,0 +1,20 @@
+<main class="pagina">
+  <header class="encabezado-pagina">
+    <div><a routerLink="/dashboard" class="volver">← Dashboard</a><h1>Servicios disponibles</h1></div>
+    <a routerLink="/workorders" class="btn btn-primario">Crear una orden</a>
+  </header>
+  <button type="button" class="btn btn-secundario" (click)="cargar()" [disabled]="cargando()">Actualizar</button>
+  @if (cargando()) { <p role="status">Cargando servicios...</p> }
+  @if (error()) { <p class="mensaje-error" role="alert">{{ error() }}</p> }
+  @if (!cargando() && !error()) {
+    @if (servicios().length === 0) { <p>No hay servicios disponibles todavía.</p> }
+    @else {
+      <div class="tabla-contenedor"><table class="tabla">
+        <thead><tr><th>Servicio</th><th>Descripción</th><th>Tarifa</th></tr></thead>
+        <tbody>@for (servicio of servicios(); track servicio.id) {
+          <tr><td>{{ servicio.nombre }}</td><td>{{ servicio.descripcion }}</td><td>{{ servicio.tarifa | currency:'CLP':'symbol-narrow':'1.0-0' }}</td></tr>
+        }</tbody>
+      </table></div>
+    }
+  }
+</main>

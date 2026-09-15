@@ -1,3 +1,4 @@
+<!-- Página de bienvenida post-login: redirige al módulo correcto según el rol. -->
 <section aria-labelledby="titulo-inicio">
   <h2 id="titulo-inicio">Bienvenido a DigitalFix</h2>
 
@@ -11,26 +12,27 @@
   } @else if (autenticacion.mensajeError()) {
     <p role="alert">{{ autenticacion.mensajeError() }}</p>
   } @else {
-        @if (autenticacion.tieneRol('Admin')) {
+
+    @if (autenticacion.tieneRol('Admin')) {
       <p>Rol: Administrador</p>
-      <a routerLink="/administracion">Ir a Administración</a>
+      <a routerLink="/dashboard">Ir al Dashboard</a>
 
     } @else if (autenticacion.tieneRol('Operador')) {
-      <p>Rol: Operador</p>
-
-      <!-- Aquí irán las opciones del operador cuando existan. -->
+      <p>Rol: Supervisor</p>
+      <a routerLink="/dashboard">Ir al Dashboard</a>
 
     } @else if (autenticacion.tieneRol('Cliente')) {
       <p>Rol: Cliente</p>
-
-      <!-- Aquí irán las opciones del cliente cuando existan. -->
+      <a routerLink="/dashboard">Ir al Dashboard</a>
 
     } @else {
-      <p role="alert">No tienes un rol asignado.</p>
+      <p role="alert">No tienes un rol asignado en DigitalFix. Contacta al administrador.</p>
     }
+
   }
 
   <button type="button" (click)="autenticacion.cerrarSesion()">
     Cerrar sesión
   </button>
+
 </section>
