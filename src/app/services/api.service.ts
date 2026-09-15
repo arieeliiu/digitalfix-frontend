@@ -4,7 +4,7 @@ import { Observable, defer } from 'rxjs';
 import { environment } from '../../environments/environment';
 
 export interface RespuestaAcceso { mensaje: string; }
-export interface ServicioCatalogo { id: number; nombre: string; descripcion: string; tarifa: number; }
+export interface ServicioCatalogo { id: number; nombre: string; descripcion: string | null; tarifa: number; }
 export interface NuevaOrden { servicioId: number; descripcion: string; direccion: string; }
 export interface OrdenTrabajo extends NuevaOrden {
   id: number; solicitanteId: string; estado: string; fechaCreacion: string;

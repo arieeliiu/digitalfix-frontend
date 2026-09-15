@@ -148,3 +148,8 @@ out-tsc/
 
 # Configuración local del editor.
 .vscode/
+# Configuración local y evidencias sensibles
+.env
+.env.*
+!.env.example
+*.log
