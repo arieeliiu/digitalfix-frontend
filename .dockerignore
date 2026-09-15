@@ -1,0 +1,15 @@
+node_modules
+dist
+.angular
+.git
+.codex
+.agents
+.vscode
+coverage
+*.log
+.env
+.env.*
+*.pem
+*.key
+docs
+README.md
