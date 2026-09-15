@@ -4,9 +4,25 @@ import {
   PublicClientApplication,
 } from '@azure/msal-browser';
 
-import type { MsalGuardConfiguration } from '@azure/msal-angular';
+import type { MsalGuardConfiguration, MsalInterceptorConfiguration } from '@azure/msal-angular';
 
 import { environment } from '../../environments/environment';
+
+export function crearConfiguracionInterceptor(): MsalInterceptorConfiguration {
+  const baseUrl = environment.apiGatewayUrl.trim().replace(/\/+$/, '');
+  const protectedResourceMap = new Map<string, string[]>();
+
+  // Nunca usar un comodín global: el token solo debe ir a nuestra API.
+  if (baseUrl) {
+    protectedResourceMap.set(`${baseUrl}/api/*`, [environment.entra.scopeApi]);
+  }
+
+  return {
+    interactionType: InteractionType.Redirect,
+    strictMatching: true,
+    protectedResourceMap,
+  };
+}
 
 // Crea la instancia que gestionará la autenticación con Entra.
 export function crearInstanciaMsal(): PublicClientApplication {

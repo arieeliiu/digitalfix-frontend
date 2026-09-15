@@ -16,6 +16,13 @@
     </div>
   </header>
 
+  @if (estadoConexion()) {
+    <p class="estado-carga" role="status">{{ estadoConexion() }}</p>
+  }
+  @if (errorConexion()) {
+    <p class="mensaje-error" role="alert">{{ errorConexion() }}</p>
+  }
+
   <!-- ── Carga de permisos ───────────────────────────────────────────────── -->
   @if (autenticacion.cargandoAutorizacion()) {
     <p class="estado-carga">Cargando permisos...</p>

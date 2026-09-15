@@ -6,10 +6,13 @@ import {
 } from '@angular/core';
 
 import { provideRouter, Router } from '@angular/router';
+import { HTTP_INTERCEPTORS, provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 
 import {
   MSAL_GUARD_CONFIG,
   MSAL_INSTANCE,
+  MSAL_INTERCEPTOR_CONFIG,
+  MsalInterceptor,
   MsalBroadcastService,
   MsalGuard,
   MsalService,
@@ -22,12 +25,23 @@ import { routes } from './app.routes';
 import {
   crearInstanciaMsal,
   crearConfiguracionProteccionRutas,
+  crearConfiguracionInterceptor,
 } from './config/msal.config';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes),
+    provideHttpClient(withInterceptorsFromDi()),
+    {
+      provide: MSAL_INTERCEPTOR_CONFIG,
+      useFactory: crearConfiguracionInterceptor,
+    },
+    {
+      provide: HTTP_INTERCEPTORS,
+      useClass: MsalInterceptor,
+      multi: true,
+    },
 
     // Registra la instancia que se comunicará con Entra.
     {
@@ -53,9 +67,7 @@ export const appConfig: ApplicationConfig = {
 
       try {
         // Procesa la respuesta recibida desde Microsoft Entra ID.
-        const resultado = await firstValueFrom(
-          servicioMsal.handleRedirectObservable(),
-        );
+        const resultado = await firstValueFrom(servicioMsal.handleRedirectObservable());
 
         if (resultado?.account) {
           // Conserva como activa la cuenta que acaba de iniciar sesión.
@@ -70,10 +82,7 @@ export const appConfig: ApplicationConfig = {
         }
       } catch (error) {
         // Evita que un fallo de autenticación impida arrancar la aplicación.
-        console.error(
-          'Error al procesar la respuesta de autenticación:',
-          error,
-        );
+        console.error('Error al procesar la respuesta de autenticación:', error);
 
         await enrutador.navigate(['/error-autenticacion']);
       }
