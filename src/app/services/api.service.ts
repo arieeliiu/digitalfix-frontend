@@ -6,8 +6,11 @@ import { environment } from '../../environments/environment';
 export interface RespuestaAcceso { mensaje: string; }
 export interface ServicioCatalogo { id: number; nombre: string; descripcion: string | null; tarifa: number; }
 export interface NuevaOrden { servicioId: number; descripcion: string; direccion: string; }
+export type EstadoOrden = 'CREADA' | 'ASIGNADA' | 'EN_DESPLAZAMIENTO' | 'EN_EJECUCION' | 'CERRADA' | 'CANCELADA';
+export interface CambioEstado { status: EstadoOrden; tecnicoId?: string; }
 export interface OrdenTrabajo extends NuevaOrden {
-  id: number; solicitanteId: string; estado: string; fechaCreacion: string;
+  id: number; solicitanteId: string; estado: EstadoOrden; fechaCreacion: string;
+  tecnicoId?: string | null; actualizadoPor?: string | null; fechaActualizacion?: string | null;
 }
 @Injectable({ providedIn: 'root' })
 export class ServicioApi {
@@ -31,6 +34,17 @@ export class ServicioApi {
     // La identidad se obtiene en el BFF del JWT; no se envía desde el formulario.
     const { servicioId, descripcion, direccion } = orden;
     return defer(() => this.http.post<OrdenTrabajo>(`${this.baseUrl()}/api/workorders`, { servicioId, descripcion, direccion }));
+  }
+  actualizarOrden(id: number, orden: NuevaOrden): Observable<OrdenTrabajo> {
+    const { servicioId, descripcion, direccion } = orden;
+    return defer(() => this.http.put<OrdenTrabajo>(`${this.baseUrl()}/api/workorders/${id}`, { servicioId, descripcion, direccion }));
+  }
+  cambiarEstadoOrden(id: number, cambio: CambioEstado): Observable<OrdenTrabajo> {
+    const { status, tecnicoId } = cambio;
+    return defer(() => this.http.put<OrdenTrabajo>(`${this.baseUrl()}/api/workorders/${id}/status`, { status, tecnicoId }));
+  }
+  eliminarOrden(id: number): Observable<void> {
+    return defer(() => this.http.delete<void>(`${this.baseUrl()}/api/workorders/${id}`));
   }
   private baseUrl(): string {
     const baseUrl = environment.apiGatewayUrl.trim().replace(/\/+$/, '');

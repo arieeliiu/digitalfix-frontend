@@ -5,6 +5,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PaginaWorkOrders } from './workorders';
 import { ServicioApi } from '../../services/api.service';
+import { ServicioAutenticacion } from '../../services/auth.service';
 
 describe('Formulario de órdenes reales', () => {
   const orden = { id: 42, servicioId: 1, descripcion: 'Revisión', direccion: 'Calle 123', estado: 'CREADA', fechaCreacion: '2026-09-15T00:00:00Z', solicitanteId: 'cliente' };
@@ -14,11 +15,14 @@ describe('Formulario de órdenes reales', () => {
     crearOrden: vi.fn(() => of(orden)),
     consultarOrden: vi.fn(() => of(orden)),
   };
+  const auth = { tieneRol: vi.fn(() => false) };
   beforeEach(() => {
     vi.clearAllMocks();
     api.crearOrden.mockReturnValue(of(orden));
+    auth.tieneRol.mockReturnValue(false);
     TestBed.configureTestingModule({ imports: [PaginaWorkOrders], providers: [
       provideRouter([]), { provide: ServicioApi, useValue: api },
+      { provide: ServicioAutenticacion, useValue: auth },
     ] });
   });
 
