@@ -16,9 +16,10 @@ export const environment = {
     // Directorio que realizará la autenticación.
     authority: 'https://login.microsoftonline.com/762b016c-dc33-4db0-ad42-44f32afe71f4',
 
-    // Direcciones utilizadas mientras trabajamos localmente.
-    redirectUri: 'http://localhost:4200',
-    postLogoutRedirectUri: 'http://localhost:4200',
+    // Registra este origen como redirect URI de tipo SPA en Entra.
+    // Funciona tanto en localhost como detrás del HTTPS del despliegue.
+    redirectUri: window.location.origin,
+    postLogoutRedirectUri: window.location.origin,
 
     // Permiso delegado expuesto por DigitalFix API.
     scopeApi: 'api://85329d90-58f8-4317-a820-452599b3b04c/access_as_user',

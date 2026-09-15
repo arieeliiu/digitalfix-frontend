@@ -1,5 +1,11 @@
 # DigitalFix — Frontend
 
+## Docker en EC2
+
+Se incluye Dockerfile con compilación Angular y Nginx, soporte de rutas SPA y
+health check. Ver [despliegue en EC2](docs/docker-ec2.md) para los comandos,
+configuración HTTPS y registro del origen en Entra ID.
+
 ## Integración mínima de catálogo y órdenes
 
 Catálogo y Órdenes consumen el BFF mediante HttpClient y MSAL Interceptor:
