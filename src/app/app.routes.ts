@@ -25,20 +25,20 @@ export const routes: Routes = [
     canActivate: [MsalGuard],
   },
 
-  // Órdenes de trabajo: Admin, Supervisor y Cliente (cada rol ve lo que corresponde).
+  // Demo: cada usuario consulta sus propias órdenes.
   {
     path: 'workorders',
     component: PaginaWorkOrders,
     canActivate: [protegerPorRol],
-    data: { roles: ['Admin', 'Supervisor', 'Cliente'] },
+    data: { roles: ['Admin', 'Operador', 'Cliente'] },
   },
 
-  // Catálogo técnico: solo Admin y Supervisor.
+  // Catálogo de lectura disponible para seleccionar servicios al crear órdenes.
   {
     path: 'catalog',
     component: PaginaCatalog,
     canActivate: [protegerPorRol],
-    data: { roles: ['Admin', 'Supervisor'] },
+    data: { roles: ['Admin', 'Operador', 'Cliente'] },
   },
 
   // Muestra un mensaje cuando la autenticación no puede completarse.

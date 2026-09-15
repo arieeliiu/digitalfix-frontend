@@ -45,7 +45,7 @@ export class ServicioAutenticacion {
   etiquetaRol(): string {
     const mapa: Record<string, string> = {
       Admin:      'Administrador',
-      Supervisor: 'Supervisor',
+      Operador: 'Operador',
       Cliente:    'Cliente',
     };
     for (const [rol, etiqueta] of Object.entries(mapa)) {

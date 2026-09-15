@@ -65,4 +65,32 @@ describe('Conexión autenticada al Gateway', () => {
     expect(error).toHaveBeenCalledWith(expect.objectContaining({ message: 'Falta configurar apiGatewayUrl.' }));
     http.expectNone(() => true);
   });
+
+  it('consulta catálogo y órdenes y crea sin enviar identidad elegida por el cliente', () => {
+    const api = TestBed.inject(ServicioApi);
+    api.listarServicios().subscribe();
+    api.listarOrdenes().subscribe();
+    api.consultarOrden(1).subscribe();
+    const datos = { servicioId: 1, descripcion: 'Revisión', direccion: 'Calle 123', solicitanteId: 'otra-persona' };
+    api.crearOrden(datos).subscribe();
+    for (const path of ['/api/catalog/services', '/api/workorders', '/api/workorders/1']) {
+      const req = http.expectOne(r => r.url === `${baseUrl}${path}` && r.method === 'GET');
+      expect(req.request.headers.get('Authorization')).toBe('Bearer token-de-prueba');
+      req.flush(path.endsWith('/1') ? {} : []);
+    }
+    const creada = http.expectOne(r => r.url === `${baseUrl}/api/workorders` && r.method === 'POST');
+    expect(creada.request.headers.get('Authorization')).toBe('Bearer token-de-prueba');
+    expect(creada.request.body).toEqual({ servicioId: 1, descripcion: 'Revisión', direccion: 'Calle 123' });
+    creada.flush({ id: 1 }, { status: 201, statusText: 'Created' });
+  });
+
+  it('no llama al placeholder de la guía', () => {
+    environment.apiGatewayUrl = 'https://<INVOKE-URL>';
+    const api = TestBed.inject(ServicioApi);
+    expect(api.estaConfigurada()).toBe(false);
+    const error = vi.fn();
+    api.listarServicios().subscribe({ error });
+    expect(error).toHaveBeenCalled();
+    http.expectNone(() => true);
+  });
 });

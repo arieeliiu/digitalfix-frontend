@@ -4,8 +4,7 @@ export const environment = {
   production: false,
 
   // Invoke URL de HTTP API, con stage si corresponde, sin /api al final.
-  // Pendiente de configurar con la URL real de AWS API Gateway.
-  apiGatewayUrl: 'https://<INVOKE-URL>',
+  apiGatewayUrl: 'https://9ijsvq2s6j.execute-api.us-east-1.amazonaws.com',
 
   entra: {
     // Registro DigitalFix Frontend.

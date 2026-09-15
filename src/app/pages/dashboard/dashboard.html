@@ -34,12 +34,12 @@
     <nav class="nav-modulos" aria-label="Módulos de la aplicación">
       <a routerLink="/workorders"
          class="nav-enlace"
-         [class.oculto]="!autenticacion.tieneRol('Admin') && !autenticacion.tieneRol('Supervisor') && !autenticacion.tieneRol('Cliente')">
+         [class.oculto]="!autenticacion.tieneRol('Admin') && !autenticacion.tieneRol('Operador') && !autenticacion.tieneRol('Cliente')">
         Órdenes de trabajo
       </a>
       <a routerLink="/catalog"
          class="nav-enlace"
-         [class.oculto]="!autenticacion.tieneRol('Admin') && !autenticacion.tieneRol('Supervisor')">
+         [class.oculto]="!autenticacion.tieneRol('Admin') && !autenticacion.tieneRol('Operador') && !autenticacion.tieneRol('Cliente')">
         Catálogo técnico
       </a>
     </nav>
@@ -71,7 +71,7 @@
     <!-- ════════════════════════════════════════════════════════════════════
          Vista SUPERVISOR — Órdenes por asignar y en terreno
          ════════════════════════════════════════════════════════════════════ -->
-    @if (autenticacion.tieneRol('Supervisor')) {
+    @if (autenticacion.tieneRol('Operador')) {
       <section aria-labelledby="titulo-ordenes-supervisor">
         <h2 id="titulo-ordenes-supervisor" class="titulo-seccion">Órdenes activas</h2>
 
@@ -178,7 +178,7 @@
     }
 
     <!-- ── Sin rol reconocido ──────────────────────────────────────────── -->
-    @if (!autenticacion.tieneRol('Admin') && !autenticacion.tieneRol('Supervisor') && !autenticacion.tieneRol('Cliente')) {
+    @if (!autenticacion.tieneRol('Admin') && !autenticacion.tieneRol('Operador') && !autenticacion.tieneRol('Cliente')) {
       <p role="alert" class="mensaje-error">
         Tu cuenta no tiene un rol asignado en DigitalFix.
         Contacta al administrador del sistema.

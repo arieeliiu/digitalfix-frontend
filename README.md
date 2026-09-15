@@ -1,5 +1,15 @@
 # DigitalFix — Frontend
 
+## Integración mínima de catálogo y órdenes
+
+Catálogo y Órdenes consumen el BFF mediante HttpClient y MSAL Interceptor:
+GET /api/catalog/services, GET/POST /api/workorders y GET /api/workorders/{id}.
+La orden se crea con servicio, descripción y dirección; el backend obtiene el
+solicitante del JWT. Los roles técnicos son Admin, Operador y Cliente.
+Configurar apiGatewayUrl con la Invoke URL real y volver a desplegar Angular.
+Los KPIs del dashboard todavía son ejemplos. Las referencias posteriores a
+comunicación pendiente describen el estado previo a esta integración.
+
 Interfaz web de DigitalFix para la gestión de mantenimiento eléctrico.
 
 ## Integrantes

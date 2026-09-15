@@ -1,147 +1,20 @@
-<!-- Catálogo técnico — Servicios y repuestos. Solo Admin puede agregar. -->
 <main class="pagina">
-
-  <!-- ── Encabezado ──────────────────────────────────────────────────────── -->
   <header class="encabezado-pagina">
-    <div>
-      <a routerLink="/dashboard" class="volver">← Dashboard</a>
-      <h1>Catálogo técnico</h1>
-    </div>
-    <div class="acciones-header">
-      <div class="info-usuario">
-        <span class="nombre-usuario">{{ autenticacion.obtenerNombreUsuario() }}</span>
-        <span class="etiqueta-rol">{{ autenticacion.etiquetaRol() }}</span>
-      </div>
-      @if (soloAdmin()) {
-        <button type="button" class="btn btn-primario" disabled title="Próximamente: conectar con POST /api/catalog">
-          + Agregar
-        </button>
-      }
-    </div>
+    <div><a routerLink="/dashboard" class="volver">← Dashboard</a><h1>Servicios disponibles</h1></div>
+    <a routerLink="/workorders" class="btn btn-primario">Crear una orden</a>
   </header>
-
-
-  <!-- ── Carga / error ───────────────────────────────────────────────────── -->
-  @if (autenticacion.cargandoAutorizacion()) {
-    <p class="estado-carga">Cargando permisos...</p>
-  } @else if (autenticacion.mensajeError()) {
-    <p class="mensaje-error" role="alert">{{ autenticacion.mensajeError() }}</p>
-  } @else {
-
-    <!-- ── Tabs ────────────────────────────────────────────────────────── -->
-    <nav class="tabs" role="tablist" aria-label="Secciones del catálogo">
-      <button
-        role="tab"
-        [attr.aria-selected]="tabActiva === 'servicios'"
-        [class.tab-activo]="tabActiva === 'servicios'"
-        class="tab"
-        (click)="tabActiva = 'servicios'"
-      >
-        Servicios
-      </button>
-      <button
-        role="tab"
-        [attr.aria-selected]="tabActiva === 'repuestos'"
-        [class.tab-activo]="tabActiva === 'repuestos'"
-        class="tab"
-        (click)="tabActiva = 'repuestos'"
-      >
-        Repuestos y stock
-      </button>
-    </nav>
-
-    <!-- ════════════════════════════════════════════════════════════════════
-         Tab SERVICIOS
-         ════════════════════════════════════════════════════════════════════ -->
-    @if (tabActiva === 'servicios') {
-      <section role="tabpanel" aria-label="Servicios" class="panel-tab">
-        <div class="tabla-wrapper">
-          <table class="tabla">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Nombre</th>
-                <th>Descripción</th>
-                <th>Precio</th>
-                <th>Estado</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (svc of servicios; track svc.id) {
-                <tr [class.fila-inactiva]="!svc.activo">
-                  <td><code>{{ svc.id }}</code></td>
-                  <td class="celda-nombre">{{ svc.nombre }}</td>
-                  <td class="celda-descripcion">{{ svc.descripcion }}</td>
-                  <td class="celda-precio">{{ formatearPrecio(svc.precio) }}</td>
-                  <td>
-                    <span
-                      class="badge"
-                      [class.badge-activo]="svc.activo"
-                      [class.badge-inactivo]="!svc.activo"
-                    >
-                      {{ svc.activo ? 'Activo' : 'Inactivo' }}
-                    </span>
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-        <p class="nota-mock">
-          Datos de ejemplo — conectar con <code>GET /api/catalog/servicios</code>
-        </p>
-      </section>
+  <button type="button" class="btn btn-secundario" (click)="cargar()" [disabled]="cargando()">Actualizar</button>
+  @if (cargando()) { <p role="status">Cargando servicios...</p> }
+  @if (error()) { <p class="mensaje-error" role="alert">{{ error() }}</p> }
+  @if (!cargando() && !error()) {
+    @if (servicios().length === 0) { <p>No hay servicios disponibles todavía.</p> }
+    @else {
+      <div class="tabla-contenedor"><table class="tabla">
+        <thead><tr><th>Servicio</th><th>Descripción</th><th>Tarifa</th></tr></thead>
+        <tbody>@for (servicio of servicios(); track servicio.id) {
+          <tr><td>{{ servicio.nombre }}</td><td>{{ servicio.descripcion }}</td><td>{{ servicio.tarifa | currency:'CLP':'symbol-narrow':'1.0-0' }}</td></tr>
+        }</tbody>
+      </table></div>
     }
-
-    <!-- ════════════════════════════════════════════════════════════════════
-         Tab REPUESTOS
-         ════════════════════════════════════════════════════════════════════ -->
-    @if (tabActiva === 'repuestos') {
-      <section role="tabpanel" aria-label="Repuestos y stock" class="panel-tab">
-
-        <!-- Alerta de stock crítico — calculada en el componente -->
-        @if (hayStockBajo) {
-          <div class="alerta-stock" role="alert">
-            ⚠️ Hay repuestos con stock por debajo del mínimo recomendado.
-          </div>
-        }
-
-        <div class="tabla-wrapper">
-          <table class="tabla">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Nombre</th>
-                <th>Referencia</th>
-                <th>Stock</th>
-                <th>Mínimo</th>
-                <th>Precio unitario</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (rep of repuestos; track rep.id) {
-                <tr [class.fila-stock-bajo]="stockBajo(rep)">
-                  <td><code>{{ rep.id }}</code></td>
-                  <td class="celda-nombre">{{ rep.nombre }}</td>
-                  <td><code>{{ rep.referencia }}</code></td>
-                  <td>
-                    <span [class.valor-critico]="stockBajo(rep)">{{ rep.stock }}</span>
-                    @if (stockBajo(rep)) {
-                      <span class="icono-alerta" aria-label="Stock bajo"> ⚠️</span>
-                    }
-                  </td>
-                  <td>{{ rep.stockMinimo }}</td>
-                  <td class="celda-precio">{{ formatearPrecio(rep.precio) }}</td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-        <p class="nota-mock">
-          Datos de ejemplo — conectar con <code>GET /api/catalog/repuestos</code>
-        </p>
-      </section>
-    }
-
   }
 </main>

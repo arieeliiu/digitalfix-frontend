@@ -8,6 +8,20 @@
   min-height: 100dvh;
 }
 
+.formulario-orden {
+  background: white;
+  padding: 24px;
+  margin: 24px 0;
+  border-radius: 12px;
+  border: 1px solid #dbe3ec;
+}
+fieldset { display: grid; gap: 12px; border: 0; padding: 0; min-width: 0; }
+fieldset input, fieldset select, fieldset textarea {
+  box-sizing: border-box; width: 100%; padding: 10px;
+  border: 1px solid #94a3b8; border-radius: 6px; font: inherit;
+}
+.tabla-contenedor { overflow-x: auto; }
+
 .pagina {
   max-width: 1100px;
   margin: 0 auto;
