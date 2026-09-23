@@ -8,7 +8,7 @@ import { RouterLink } from '@angular/router';
     <section aria-labelledby="titulo-acceso-denegado">
       <h1 id="titulo-acceso-denegado">Acceso denegado</h1>
       <p>Tu cuenta no tiene permisos para acceder a esta sección.</p>
-      <a routerLink="/inicio">Volver al inicio</a>
+      <a routerLink="/dashboard">Volver al dashboard</a>
     </section>
   `,
 })

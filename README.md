@@ -18,7 +18,10 @@ MSAL Interceptor solicita access_as_user y agrega Bearer a sus rutas /api/*.
 Catálogo y órdenes consumen datos reales mediante Gateway → BFF → microservicios.
 El POST solo envía servicioId, descripcion y direccion. El BFF obtiene oid del JWT.
 Los roles técnicos son Admin, Operador y Cliente; todos consultan sus propias órdenes.
-Los KPIs del dashboard siguen siendo ejemplos. /administracion redirige a /dashboard.
+El dashboard permite acceder a los módulos según el rol del usuario.
+Se retiraron los KPIs y las órdenes de ejemplo; sus resúmenes reales
+quedan pendientes de implementación.
+Las rutas antiguas /inicio y /administracion redirigen a /dashboard.
 Las comprobaciones de interfaz no sustituyen la validación del BFF.
 
 Ver [guía completa](../digitalfix-ms-bff/DEPLOYMENT.md),

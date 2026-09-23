@@ -65,7 +65,7 @@ export class ServicioAutenticacion {
         scopes: ['openid', 'profile', environment.entra.scopeApi],
 
         // Después del login, MSAL regresará a la página protegida.
-        redirectStartPage: `${window.location.origin}/inicio`,
+        redirectStartPage: `${window.location.origin}/dashboard`,
       })
       .subscribe({
         error: () => {
