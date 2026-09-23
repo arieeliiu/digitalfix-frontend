@@ -25,7 +25,7 @@ export const routes: Routes = [
     canActivate: [MsalGuard],
   },
 
-  // Demo: cada usuario consulta sus propias órdenes.
+  // Acceso al módulo de órdenes de trabajo.
   {
     path: 'workorders',
     component: PaginaWorkOrders,
