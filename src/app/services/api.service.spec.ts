@@ -93,4 +93,24 @@ describe('Conexión autenticada al Gateway', () => {
     expect(error).toHaveBeenCalled();
     http.expectNone(() => true);
   });
+
+  it('consulta repuestos mediante GET autenticado al Gateway solo al suscribirse', () => {
+    const consulta = TestBed.inject(ServicioApi).listarRepuestos();
+    http.expectNone(() => true);
+    consulta.subscribe();
+    const req = http.expectOne(`${baseUrl}/api/catalog/spare-parts`);
+    expect(req.request.method).toBe('GET');
+    expect(req.request.headers.get('Authorization')).toBe('Bearer token-de-prueba');
+    req.flush([]);
+  });
+
+  it('envía técnico y repuestos al cambiar estado', () => {
+    const cambio = { status: 'ASIGNADA' as const, tecnicoId: 'tecnico-01', repuestos: [{ repuestoId: 3, cantidad: 2 }] };
+    TestBed.inject(ServicioApi).cambiarEstadoOrden(42, cambio).subscribe();
+    const req = http.expectOne(`${baseUrl}/api/workorders/42/status`);
+    expect(req.request.method).toBe('PUT');
+    expect(req.request.body).toEqual(cambio);
+    expect(req.request.headers.get('Authorization')).toBe('Bearer token-de-prueba');
+    req.flush({});
+  });
 });

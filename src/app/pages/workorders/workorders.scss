@@ -1,3 +1,22 @@
+.repuestos {
+  border-top: 1px solid #dbe3ec;
+  padding-top: 12px;
+}
+.repuesto {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 110px;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid #dbe3ec;
+  label { display: block; font-weight: 600; }
+  p { margin: 6px 0; color: #475569; overflow-wrap: anywhere; }
+  input:disabled { background: #f1f5f9; color: #64748b; }
+}
+@media (max-width: 420px) {
+  .repuesto { grid-template-columns: minmax(0, 1fr); }
+}
+
 // ── Layout general ───────────────────────────────────────────────────────────
 
 :host {
