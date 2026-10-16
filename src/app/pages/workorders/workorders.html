@@ -1,11 +1,18 @@
 <main class="pagina">
   <header class="encabezado-pagina">
-    <div><a routerLink="/dashboard" class="volver">← Dashboard</a><h1>Mis órdenes de trabajo</h1></div>
+    <div><a routerLink="/dashboard" class="volver">← Dashboard</a><h1>Órdenes de trabajo</h1></div>
     <button type="button" class="btn btn-secundario" (click)="cargar()" [disabled]="ocupado()">Actualizar</button>
   </header>
   @if (cargando()) { <p role="status">Cargando servicios y órdenes...</p> }
   @if (error()) { <p class="mensaje-error" role="alert">{{ error() }}</p> }
   @if (mensaje()) { <p role="status">{{ mensaje() }}</p> }
+  @if (cargandoRepuestos()) { <p role="status">Cargando repuestos...</p> }
+  @if (errorRepuestos()) {
+    <div class="mensaje-error" role="alert">
+      <p>No se pudieron cargar los repuestos. {{ errorRepuestos() }}</p>
+      <button type="button" class="btn btn-secundario" (click)="cargarRepuestos()" [disabled]="ocupado()">Reintentar repuestos</button>
+    </div>
+  }
   @if (!cargando()) {
     <section class="formulario-orden" aria-labelledby="nueva-orden">
       <h2 id="nueva-orden">{{ editandoId() === null ? 'Nueva orden' : 'Editar orden #' + editandoId() }}</h2>
@@ -33,7 +40,7 @@
       </form>
     </section>
     <h2>Órdenes registradas</h2>
-    @if (ordenes().length === 0 && !error()) { <p>Aún no tienes órdenes.</p> }
+    @if (ordenes().length === 0 && !error()) { <p>No hay órdenes registradas.</p> }
     @if (ordenes().length > 0) {
       <div class="tabla-contenedor"><table class="tabla">
         <thead><tr><th>Orden</th><th>Descripción</th><th>Estado</th><th>Fecha</th><th>Acciones</th></tr></thead>
@@ -41,10 +48,10 @@
           <tr><td>#{{ orden.id }}</td><td>{{ orden.descripcion }}</td><td>{{ orden.estado }}</td><td>{{ orden.fechaCreacion | date:'dd/MM/yyyy HH:mm' }}</td>
             <td><div class="acciones-orden">
               <button type="button" class="btn btn-secundario" (click)="consultar(orden.id)" [disabled]="ocupado()">Consultar</button>
-              @if (orden.estado === 'CREADA') {
+              @if (esPropia(orden) && orden.estado === 'CREADA') {
                 <button type="button" class="btn btn-secundario" (click)="editar(orden.id)" [disabled]="ocupado()">Editar</button>
               }
-              @if (orden.estado === 'CREADA' || orden.estado === 'CANCELADA') {
+              @if (esPropia(orden) && (orden.estado === 'CREADA' || orden.estado === 'CANCELADA')) {
                 <button type="button" class="btn btn-peligro" (click)="solicitarEliminacion(orden)" [disabled]="ocupado()">Eliminar</button>
               }
             </div></td></tr>
@@ -68,11 +75,19 @@
         <p>{{ orden.descripcion }}</p><p>Dirección: {{ orden.direccion }}</p>
         <p>Estado: {{ orden.estado }}</p><p>Servicio: #{{ orden.servicioId }}</p>
         @if (orden.tecnicoId) { <p>Técnico: {{ orden.tecnicoId }}</p> }
+        @if (orden.repuestos?.length) {
+          <h3>Repuestos utilizados</h3>
+          <ul>
+            @for (repuesto of orden.repuestos; track repuesto.repuestoId) {
+              <li>{{ nombreRepuesto(repuesto.repuestoId) }} — {{ repuesto.cantidad }} {{ repuesto.cantidad === 1 ? 'unidad' : 'unidades' }}</li>
+            }
+          </ul>
+        }
         @if (orden.fechaActualizacion) {
           <p>Última actualización: {{ orden.fechaActualizacion | date:'dd/MM/yyyy HH:mm' }}</p>
         }
         @if (puedeGestionarEstado() && estadosDisponibles().length > 0) {
-          <form (ngSubmit)="cambiarEstado()">
+          <form #formEstado="ngForm" (ngSubmit)="cambiarEstado()">
             <fieldset [disabled]="ocupado()">
               <label for="estado">Nuevo estado</label>
               <select id="estado" name="estado" [(ngModel)]="nuevoEstado" required>
@@ -84,8 +99,34 @@
               @if (nuevoEstado === 'ASIGNADA') {
                 <label for="tecnico">Identificador del técnico</label>
                 <input id="tecnico" name="tecnico" [(ngModel)]="tecnicoId" required maxlength="100" />
+                <section class="repuestos" aria-labelledby="titulo-repuestos">
+                  <h3 id="titulo-repuestos">Repuestos para la asignación</h3>
+                  <p>Indica la cantidad necesaria. Deja todas en 0 si la orden no necesita repuestos.</p>
+                  @if (errorRepuestos()) {
+                    <p>Catálogo no disponible. Reintenta la carga si necesitas repuestos.</p>
+                  } @else if (!cargandoRepuestos() && repuestos().length === 0) {
+                    <p>No hay repuestos disponibles.</p>
+                  }
+                  @for (repuesto of repuestos(); track repuesto.id) {
+                    <div class="repuesto">
+                      <div>
+                        <label [for]="'repuesto-' + repuesto.id">{{ repuesto.nombre }}</label>
+                        @if (repuesto.descripcion) { <p>{{ repuesto.descripcion }}</p> }
+                        <p [id]="'stock-' + repuesto.id">Stock disponible: {{ repuesto.stock }}</p>
+                      </div>
+                      <div>
+                        <label [for]="'repuesto-' + repuesto.id">Cantidad</label>
+                        <input type="number" [id]="'repuesto-' + repuesto.id" [name]="'repuesto-' + repuesto.id"
+                          [ngModel]="cantidades[repuesto.id] === undefined ? 0 : cantidades[repuesto.id]"
+                          (ngModelChange)="cantidades[repuesto.id] = $event"
+                          min="0" [max]="repuesto.stock" step="1" required [disabled]="repuesto.stock === 0"
+                          [attr.aria-describedby]="'stock-' + repuesto.id" />
+                      </div>
+                    </div>
+                  }
+                </section>
               }
-              <button type="submit" class="btn btn-primario" [disabled]="!nuevoEstado || (nuevoEstado === 'ASIGNADA' && !tecnicoId.trim())">Cambiar estado</button>
+              <button type="submit" class="btn btn-primario" [disabled]="formEstado.invalid || !nuevoEstado || (nuevoEstado === 'ASIGNADA' && !tecnicoId.trim())">Cambiar estado</button>
             </fieldset>
           </form>
         }

@@ -14,6 +14,13 @@ export interface ServicioCatalogo {
   tarifa: number;
 }
 
+export interface RepuestoCatalogo {
+  id: number;
+  nombre: string;
+  descripcion: string | null;
+  stock: number;
+}
+
 export interface NuevaOrden {
   servicioId: number;
   descripcion: string;
@@ -77,6 +84,12 @@ export class ServicioApi {
       this.http.get<ServicioCatalogo[]>(
         `${this.baseUrl()}/api/catalog/services`
       )
+    );
+  }
+
+  listarRepuestos(): Observable<RepuestoCatalogo[]> {
+    return defer(() =>
+      this.http.get<RepuestoCatalogo[]>(`${this.baseUrl()}/api/catalog/spare-parts`)
     );
   }
 
