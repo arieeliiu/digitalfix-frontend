@@ -3,23 +3,62 @@
     <div><a routerLink="/dashboard" class="volver">← Dashboard</a><h1>Catálogo</h1></div>
     <a routerLink="/workorders" class="btn btn-primario">Crear una orden</a>
   </header>
-  <button type="button" class="btn btn-secundario" (click)="cargar()" [disabled]="cargando()">Actualizar</button>
+  <button type="button" class="btn btn-secundario" (click)="cargar()" [disabled]="ocupadoServicios() && ocupadoRepuestos()">Actualizar</button>
   <section aria-labelledby="titulo-servicios" [attr.aria-busy]="cargandoServicios()">
     <h2 id="titulo-servicios">Servicios técnicos</h2>
+    @if (mensajeServicios()) { <p role="status">{{ mensajeServicios() }}</p> }
+    @if (errorOperacionServicios()) { <p class="mensaje-error" role="alert">{{ errorOperacionServicios() }}</p> }
+    @if (esAdmin()) {
+      <button type="button" class="btn btn-primario" (click)="abrirServicio()" [disabled]="ocupadoServicios() || formularioServicio()">Nuevo servicio</button>
+      @if (formularioServicio()) {
+        <form class="formulario-catalogo" aria-labelledby="form-servicio" (ngSubmit)="guardarServicio()">
+          <h3 id="form-servicio">{{ datosServicio.id === null ? 'Nuevo servicio' : 'Editar servicio' }}</h3>
+          <fieldset [disabled]="ocupadoServicios()">
+            <label for="servicio-nombre">Nombre</label>
+            <input id="servicio-nombre" name="nombre" [(ngModel)]="datosServicio.nombre" required />
+            <label for="servicio-descripcion">Descripción (opcional)</label>
+            <textarea id="servicio-descripcion" name="descripcion" [(ngModel)]="datosServicio.descripcion" rows="3"></textarea>
+            <label for="servicio-tarifa">Tarifa (CLP)</label>
+            <input id="servicio-tarifa" name="tarifa" type="number" [(ngModel)]="datosServicio.tarifa" min="0" step="any" required />
+            <div class="acciones-header">
+              <button type="submit" class="btn btn-primario" [disabled]="ocupadoServicios()">{{ guardandoServicios() ? 'Guardando...' : 'Guardar servicio' }}</button>
+              <button type="button" class="btn btn-secundario" (click)="cancelarServicio()">Cancelar</button>
+            </div>
+          </fieldset>
+        </form>
+      }
+      @if (pendienteServicio(); as pendiente) {
+        <div class="formulario-catalogo" role="group" aria-labelledby="eliminar-servicio">
+          <h3 id="eliminar-servicio">Eliminar servicio: {{ pendiente.nombre }}</h3>
+          <p>Esta acción no se puede deshacer.</p>
+          <div class="acciones-header">
+            <button type="button" class="btn btn-peligro" (click)="eliminarServicio()" [disabled]="ocupadoServicios()">{{ eliminandoServicios() ? 'Eliminando...' : 'Confirmar eliminación' }}</button>
+            <button type="button" class="btn btn-secundario" (click)="pendienteServicio.set(null)" [disabled]="ocupadoServicios()">Conservar servicio</button>
+          </div>
+        </div>
+      }
+    }
     @if (cargandoServicios()) { <p role="status">Cargando servicios...</p> }
     @if (errorServicios()) {
       <div class="mensaje-error" role="alert">
         <p>No se pudieron cargar los servicios. {{ errorServicios() }}</p>
-        <button type="button" class="btn btn-secundario" (click)="cargarServicios()">Reintentar servicios</button>
+        <button type="button" class="btn btn-secundario" (click)="cargarServicios()" [disabled]="ocupadoServicios()">Reintentar servicios</button>
       </div>
     }
   @if (!cargandoServicios() && !errorServicios()) {
     @if (servicios().length === 0) { <p>No hay servicios disponibles todavía.</p> }
     @else {
       <div class="tabla-contenedor"><table class="tabla">
-        <thead><tr><th>Servicio</th><th>Descripción</th><th>Tarifa</th></tr></thead>
+        <thead><tr><th>Servicio</th><th>Descripción</th><th>Tarifa</th>@if (esAdmin()) { <th>Acciones</th> }</tr></thead>
         <tbody>@for (servicio of servicios(); track servicio.id) {
-          <tr><td class="celda-nombre">{{ servicio.nombre }}</td><td class="celda-descripcion">{{ servicio.descripcion?.trim() || 'Sin descripción' }}</td><td class="celda-precio">{{ servicio.tarifa | currency:'CLP':'code':'1.0-0' }}</td></tr>
+          <tr><td class="celda-nombre">{{ servicio.nombre }}</td><td class="celda-descripcion">{{ servicio.descripcion?.trim() || 'Sin descripción' }}</td><td class="celda-precio">{{ servicio.tarifa | currency:'CLP':'code':'1.0-0' }}</td>
+            @if (esAdmin()) {
+              <td><div class="acciones-header">
+                <button type="button" class="btn btn-secundario" (click)="abrirServicio(servicio)" [disabled]="ocupadoServicios() || formularioServicio()" [attr.aria-label]="'Editar servicio ' + servicio.nombre">Editar</button>
+                <button type="button" class="btn btn-peligro" (click)="solicitarEliminarServicio(servicio)" [disabled]="ocupadoServicios() || formularioServicio()" [attr.aria-label]="'Eliminar servicio ' + servicio.nombre">Eliminar</button>
+              </div></td>
+            }
+          </tr>
         }</tbody>
       </table></div>
     }
@@ -27,18 +66,50 @@
   </section>
   <section aria-labelledby="titulo-repuestos" [attr.aria-busy]="cargandoRepuestos()">
     <h2 id="titulo-repuestos">Repuestos</h2>
+    @if (mensajeRepuestos()) { <p role="status">{{ mensajeRepuestos() }}</p> }
+    @if (errorOperacionRepuestos()) { <p class="mensaje-error" role="alert">{{ errorOperacionRepuestos() }}</p> }
+    @if (esAdmin()) {
+      <button type="button" class="btn btn-primario" (click)="abrirRepuesto()" [disabled]="ocupadoRepuestos() || formularioRepuesto()">Nuevo repuesto</button>
+      @if (formularioRepuesto()) {
+        <form class="formulario-catalogo" aria-labelledby="form-repuesto" (ngSubmit)="guardarRepuesto()">
+          <h3 id="form-repuesto">{{ datosRepuesto.id === null ? 'Nuevo repuesto' : 'Editar repuesto' }}</h3>
+          <fieldset [disabled]="ocupadoRepuestos()">
+            <label for="repuesto-nombre">Nombre</label>
+            <input id="repuesto-nombre" name="nombre" [(ngModel)]="datosRepuesto.nombre" required />
+            <label for="repuesto-descripcion">Descripción</label>
+            <textarea id="repuesto-descripcion" name="descripcion" [(ngModel)]="datosRepuesto.descripcion" rows="3" required></textarea>
+            <label for="repuesto-stock">Stock</label>
+            <input id="repuesto-stock" name="stock" type="number" [(ngModel)]="datosRepuesto.stock" min="0" step="1" required />
+            <div class="acciones-header">
+              <button type="submit" class="btn btn-primario" [disabled]="ocupadoRepuestos()">{{ guardandoRepuestos() ? 'Guardando...' : 'Guardar repuesto' }}</button>
+              <button type="button" class="btn btn-secundario" (click)="cancelarRepuesto()">Cancelar</button>
+            </div>
+          </fieldset>
+        </form>
+      }
+      @if (pendienteRepuesto(); as pendiente) {
+        <div class="formulario-catalogo" role="group" aria-labelledby="eliminar-repuesto">
+          <h3 id="eliminar-repuesto">Eliminar repuesto: {{ pendiente.nombre }}</h3>
+          <p>Esta acción no se puede deshacer.</p>
+          <div class="acciones-header">
+            <button type="button" class="btn btn-peligro" (click)="eliminarRepuesto()" [disabled]="ocupadoRepuestos()">{{ eliminandoRepuestos() ? 'Eliminando...' : 'Confirmar eliminación' }}</button>
+            <button type="button" class="btn btn-secundario" (click)="pendienteRepuesto.set(null)" [disabled]="ocupadoRepuestos()">Conservar repuesto</button>
+          </div>
+        </div>
+      }
+    }
     @if (cargandoRepuestos()) { <p role="status">Cargando repuestos...</p> }
     @if (errorRepuestos()) {
       <div class="mensaje-error" role="alert">
         <p>No se pudieron cargar los repuestos. {{ errorRepuestos() }}</p>
-        <button type="button" class="btn btn-secundario" (click)="cargarRepuestos()">Reintentar repuestos</button>
+        <button type="button" class="btn btn-secundario" (click)="cargarRepuestos()" [disabled]="ocupadoRepuestos()">Reintentar repuestos</button>
       </div>
     }
     @if (!cargandoRepuestos() && !errorRepuestos()) {
       @if (repuestos().length === 0) { <p>No hay repuestos disponibles todavía.</p> }
       @else {
         <div class="tabla-contenedor"><table class="tabla">
-          <thead><tr><th>Repuesto</th><th>Descripción</th><th>Stock</th></tr></thead>
+          <thead><tr><th>Repuesto</th><th>Descripción</th><th>Stock</th>@if (esAdmin()) { <th>Acciones</th> }</tr></thead>
           <tbody>@for (repuesto of repuestos(); track repuesto.id) {
             <tr>
               <td class="celda-nombre">{{ repuesto.nombre }}</td>
@@ -47,6 +118,12 @@
                 @if (repuesto.stock === 0) { <span class="badge sin-stock">Sin stock</span> }
                 @else { {{ repuesto.stock }} {{ repuesto.stock === 1 ? 'unidad' : 'unidades' }} }
               </td>
+              @if (esAdmin()) {
+                <td><div class="acciones-header">
+                  <button type="button" class="btn btn-secundario" (click)="abrirRepuesto(repuesto)" [disabled]="ocupadoRepuestos() || formularioRepuesto()" [attr.aria-label]="'Editar repuesto ' + repuesto.nombre">Editar</button>
+                  <button type="button" class="btn btn-peligro" (click)="solicitarEliminarRepuesto(repuesto)" [disabled]="ocupadoRepuestos() || formularioRepuesto()" [attr.aria-label]="'Eliminar repuesto ' + repuesto.nombre">Eliminar</button>
+                </div></td>
+              }
             </tr>
           }</tbody>
         </table></div>

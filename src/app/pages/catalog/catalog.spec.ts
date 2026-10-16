@@ -4,6 +4,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { provideRouter } from '@angular/router';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { PaginaCatalog } from './catalog';
+import { ServicioAutenticacion } from '../../services/auth.service';
 import { environment } from '../../../environments/environment';
 
 describe('Catálogo de lectura', () => {
@@ -16,11 +17,14 @@ describe('Catálogo de lectura', () => {
     { id: 8, nombre: 'Conector', descripcion: ' ', stock: 1 },
   ];
   let http: HttpTestingController;
+  let rol: string;
 
   beforeEach(() => {
     environment.apiGatewayUrl = baseUrl;
+    rol = 'Operador';
     TestBed.configureTestingModule({ imports: [PaginaCatalog], providers: [
       provideRouter([]), provideHttpClient(), provideHttpClientTesting(),
+      { provide: ServicioAutenticacion, useValue: { tieneRol: (valor: string) => valor === rol } },
     ] });
     http = TestBed.inject(HttpTestingController);
   });
@@ -82,6 +86,7 @@ describe('Catálogo de lectura', () => {
     correcta.flush(fallaServicios ? repuestos : servicios);
     await fixture.whenStable(); fixture.detectChanges();
     expect(root.querySelector('[role="alert"]')?.textContent).toContain(`No se pudieron cargar los ${seccion}`);
+    expect(root.querySelector('[role="alert"]')?.textContent).toContain('No se pudo completar la operación en el catálogo. Inténtalo nuevamente.');
     expect(root.textContent).toContain(fallaServicios ? 'Cable' : 'Mantención');
     expect(root.textContent).not.toContain(`No hay ${seccion} disponibles`);
     const reintentar = Array.from(root.querySelectorAll('button')).find(b => b.textContent?.trim() === `Reintentar ${seccion}`)!;
@@ -108,4 +113,271 @@ describe('Catálogo de lectura', () => {
     expect(seccion.textContent).not.toContain('10 unidades');
     expect(seccion.querySelectorAll('tbody tr')).toHaveLength(1);
   });
+
+  async function prepararAdmin() {
+    rol = 'Admin';
+    const entorno = preparar();
+    entorno.consultaServicios.flush(servicios); entorno.consultaRepuestos.flush(repuestos);
+    await entorno.fixture.whenStable(); entorno.fixture.detectChanges();
+    return entorno;
+  }
+
+  function boton(root: HTMLElement, texto: string): HTMLButtonElement {
+    const encontrado = Array.from(root.querySelectorAll('button')).find(b =>
+      b.getAttribute('aria-label') === texto || b.textContent?.trim() === texto);
+    expect(encontrado, texto).toBeDefined();
+    return encontrado!;
+  }
+
+  function ingresar(root: HTMLElement, id: string, valor: string): void {
+    const input = root.querySelector('#' + id) as HTMLInputElement;
+    input.value = valor; input.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+
+  it.each(['crear', 'editar'])('Admin puede %s servicio y refresca desde el backend', async operacion => {
+    const { fixture, root } = await prepararAdmin();
+    const editando = operacion === 'editar';
+    boton(root, editando ? 'Editar servicio Mantención' : 'Nuevo servicio').click();
+    fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    const form = root.querySelector('form[aria-labelledby="form-servicio"]')!;
+    expect(form).not.toBeNull();
+    if (editando) {
+      expect((root.querySelector('#servicio-nombre') as HTMLInputElement).value).toBe('Mantención');
+      expect((root.querySelector('#servicio-tarifa') as HTMLInputElement).value).toBe('25000');
+    }
+    ingresar(root, 'servicio-nombre', ' Nuevo nombre ');
+    ingresar(root, 'servicio-descripcion', '   ');
+    ingresar(root, 'servicio-tarifa', '12500.75');
+    form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    fixture.detectChanges();
+    expect(boton(root, 'Guardando...').disabled).toBe(true);
+    const req = http.expectOne(r => r.method === (editando ? 'PUT' : 'POST') && r.url === `${baseUrl}/api/catalog/services${editando ? '/1' : ''}`);
+    expect(req.request.body).toEqual({ nombre: 'Nuevo nombre', descripcion: null, tarifa: 12500.75 });
+    req.flush({ id: 1, ...req.request.body });
+    await Promise.resolve();
+    http.expectOne(`${baseUrl}/api/catalog/services`).flush([
+      { id: 1, nombre: 'Respuesta del servidor', descripcion: null, tarifa: 17000 },
+    ]);
+    await fixture.whenStable(); fixture.detectChanges();
+    expect(root.querySelector('form[aria-labelledby="form-servicio"]')).toBeNull();
+    expect(root.querySelector('[aria-labelledby="titulo-servicios"]')?.textContent).toContain('Respuesta del servidor');
+    expect(root.textContent).not.toContain('Nuevo nombre');
+  });
+
+  it('eliminar servicio exige confirmación y evita doble DELETE', async () => {
+    const { fixture, root } = await prepararAdmin();
+    boton(root, 'Eliminar servicio Mantención').click(); fixture.detectChanges();
+    http.expectNone(r => r.method === 'DELETE');
+    boton(root, 'Conservar servicio').click(); fixture.detectChanges();
+    http.expectNone(r => r.method === 'DELETE');
+    boton(root, 'Eliminar servicio Mantención').click(); fixture.detectChanges();
+    const confirmar = root.querySelector('[aria-labelledby="eliminar-servicio"] button') as HTMLButtonElement;
+    confirmar.click(); confirmar.click(); fixture.detectChanges();
+    const req = http.expectOne(r => r.method === 'DELETE' && r.url === `${baseUrl}/api/catalog/services/1`);
+    expect(confirmar.disabled).toBe(true);
+    req.flush(null, { status: 204, statusText: 'No Content' });
+    await Promise.resolve();
+    http.expectOne(`${baseUrl}/api/catalog/services`).flush([]);
+    await fixture.whenStable(); fixture.detectChanges();
+    expect(root.querySelector('[aria-labelledby="eliminar-servicio"]')).toBeNull();
+    expect(root.textContent).toContain('No hay servicios disponibles todavía.');
+  });
+
+  it.each(['crear', 'editar', 'eliminar'])('error al %s servicio conserva datos y no refresca como si hubiera funcionado', async operacion => {
+    const { fixture, root } = await prepararAdmin();
+    const pagina = fixture.componentInstance;
+    if (operacion === 'eliminar') {
+      pagina['solicitarEliminarServicio'](servicios[0]);
+      void pagina['eliminarServicio']();
+    } else {
+      pagina['abrirServicio'](operacion === 'editar' ? servicios[0] : undefined);
+      pagina['datosServicio'] = { id: operacion === 'editar' ? 1 : null, nombre: 'Conservar datos', descripcion: 'Descripción', tarifa: 12500.75 };
+      void pagina['guardarServicio']();
+    }
+    const req = http.expectOne(r => r.method !== 'GET');
+    req.flush({}, { status: operacion === 'eliminar' ? 409 : operacion === 'editar' ? 404 : 400, statusText: 'Error' });
+    await fixture.whenStable(); fixture.detectChanges();
+    expect(pagina['errorOperacionServicios']()).toBe(operacion === 'eliminar'
+      ? 'No se pudo completar la operación porque existe un conflicto con el estado actual del catálogo.'
+      : operacion === 'editar' ? 'No se encontró el elemento del catálogo solicitado.'
+      : 'Revisa los datos ingresados en el catálogo.');
+    expect(root.querySelector('[aria-labelledby="titulo-servicios"] [role="alert"]')).not.toBeNull();
+    expect(pagina['servicios']()).toHaveLength(1);
+    if (operacion !== 'eliminar') {
+      expect(pagina['formularioServicio']()).toBe(true);
+      expect(pagina['datosServicio'].nombre).toBe('Conservar datos');
+      expect(pagina['datosServicio'].tarifa).toBe(12500.75);
+    } else {
+      expect(pagina['pendienteServicio']()?.id).toBe(1);
+    }
+    http.expectNone(() => true);
+    expect(root.querySelector('[aria-labelledby="titulo-repuestos"] table')).not.toBeNull();
+  });
+
+  it.each(['crear', 'editar'])('Admin puede %s repuesto y refresca desde el backend', async operacion => {
+    const { fixture, root } = await prepararAdmin();
+    const editando = operacion === 'editar';
+    boton(root, editando ? 'Editar repuesto Cable' : 'Nuevo repuesto').click();
+    fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    const form = root.querySelector('form[aria-labelledby="form-repuesto"]')!;
+    expect(form).not.toBeNull();
+    if (editando) {
+      expect((root.querySelector('#repuesto-nombre') as HTMLInputElement).value).toBe('Cable');
+      expect((root.querySelector('#repuesto-stock') as HTMLInputElement).value).toBe('10');
+    }
+    ingresar(root, 'repuesto-nombre', ' Nuevo nombre ');
+    ingresar(root, 'repuesto-descripcion', ' Descripción nueva ');
+    ingresar(root, 'repuesto-stock', '0');
+    form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    fixture.detectChanges();
+    expect(boton(root, 'Guardando...').disabled).toBe(true);
+    const req = http.expectOne(r => r.method === (editando ? 'PUT' : 'POST') && r.url === `${baseUrl}/api/catalog/spare-parts${editando ? '/3' : ''}`);
+    expect(req.request.body).toEqual({ nombre: 'Nuevo nombre', descripcion: 'Descripción nueva', stock: 0 });
+    req.flush({ id: 3, ...req.request.body });
+    await Promise.resolve();
+    http.expectOne(`${baseUrl}/api/catalog/spare-parts`).flush([
+      { id: 3, nombre: 'Respuesta del servidor', descripcion: null, stock: 4 },
+    ]);
+    await fixture.whenStable(); fixture.detectChanges();
+    expect(root.querySelector('form[aria-labelledby="form-repuesto"]')).toBeNull();
+    expect(root.querySelector('[aria-labelledby="titulo-repuestos"]')?.textContent).toContain('Respuesta del servidor');
+    expect(root.textContent).not.toContain('Nuevo nombre');
+    expect(root.querySelector('[aria-labelledby="titulo-repuestos"]')?.textContent).toContain('4 unidades');
+  });
+
+  it('eliminar repuesto exige confirmación y evita doble DELETE', async () => {
+    const { fixture, root } = await prepararAdmin();
+    boton(root, 'Eliminar repuesto Cable').click(); fixture.detectChanges();
+    http.expectNone(r => r.method === 'DELETE');
+    boton(root, 'Conservar repuesto').click(); fixture.detectChanges();
+    http.expectNone(r => r.method === 'DELETE');
+    boton(root, 'Eliminar repuesto Cable').click(); fixture.detectChanges();
+    const confirmar = root.querySelector('[aria-labelledby="eliminar-repuesto"] button') as HTMLButtonElement;
+    confirmar.click(); confirmar.click(); fixture.detectChanges();
+    const req = http.expectOne(r => r.method === 'DELETE' && r.url === `${baseUrl}/api/catalog/spare-parts/3`);
+    expect(confirmar.disabled).toBe(true);
+    req.flush(null, { status: 204, statusText: 'No Content' });
+    await Promise.resolve();
+    http.expectOne(`${baseUrl}/api/catalog/spare-parts`).flush([]);
+    await fixture.whenStable(); fixture.detectChanges();
+    expect(root.querySelector('[aria-labelledby="eliminar-repuesto"]')).toBeNull();
+    expect(root.textContent).toContain('No hay repuestos disponibles todavía.');
+  });
+
+  it.each(['crear', 'editar', 'eliminar'])('error al %s repuesto conserva datos y no refresca como si hubiera funcionado', async operacion => {
+    const { fixture, root } = await prepararAdmin();
+    const pagina = fixture.componentInstance;
+    if (operacion === 'eliminar') {
+      pagina['solicitarEliminarRepuesto'](repuestos[0]);
+      void pagina['eliminarRepuesto']();
+    } else {
+      pagina['abrirRepuesto'](operacion === 'editar' ? repuestos[0] : undefined);
+      pagina['datosRepuesto'] = { id: operacion === 'editar' ? 3 : null, nombre: 'Conservar datos', descripcion: 'Descripción', stock: 0 };
+      void pagina['guardarRepuesto']();
+    }
+    const req = http.expectOne(r => r.method !== 'GET');
+    req.flush({}, { status: operacion === 'eliminar' ? 409 : operacion === 'editar' ? 404 : 400, statusText: 'Error' });
+    await fixture.whenStable(); fixture.detectChanges();
+    expect(pagina['errorOperacionRepuestos']()).toBe(operacion === 'eliminar'
+      ? 'No se pudo completar la operación porque existe un conflicto con el estado actual del catálogo.'
+      : operacion === 'editar' ? 'No se encontró el elemento del catálogo solicitado.'
+      : 'Revisa los datos ingresados en el catálogo.');
+    expect(root.querySelector('[aria-labelledby="titulo-repuestos"] [role="alert"]')).not.toBeNull();
+    expect(pagina['repuestos']()).toHaveLength(3);
+    if (operacion !== 'eliminar') {
+      expect(pagina['formularioRepuesto']()).toBe(true);
+      expect(pagina['datosRepuesto'].nombre).toBe('Conservar datos');
+      expect(pagina['datosRepuesto'].stock).toBe(0);
+    } else {
+      expect(pagina['pendienteRepuesto']()?.id).toBe(3);
+    }
+    http.expectNone(() => true);
+    expect(root.querySelector('[aria-labelledby="titulo-servicios"] table')).not.toBeNull();
+  });
+
+  it.each([
+    { nombre: ' ', tarifa: 1 }, { nombre: 'Servicio', tarifa: -1 },
+    { nombre: 'Servicio', tarifa: null }, { nombre: 'Servicio', tarifa: NaN },
+    { nombre: 'Servicio', tarifa: Infinity },
+  ])('rechaza servicio inválido: %j', async datos => {
+    const { fixture } = await prepararAdmin();
+    const pagina = fixture.componentInstance;
+    pagina['abrirServicio']();
+    pagina['datosServicio'] = { id: null, descripcion: '', ...datos };
+    await pagina['guardarServicio']();
+    expect(pagina['errorOperacionServicios']()).not.toBe('');
+    http.expectNone(() => true);
+  });
+
+  it.each([
+    { nombre: ' ', descripcion: 'Descripción', stock: 1 },
+    { nombre: 'Repuesto', descripcion: ' ', stock: 1 },
+    { nombre: 'Repuesto', descripcion: 'Descripción', stock: null },
+    { nombre: 'Repuesto', descripcion: 'Descripción', stock: -1 },
+    { nombre: 'Repuesto', descripcion: 'Descripción', stock: 1.5 },
+  ])('rechaza repuesto inválido: %j', async datos => {
+    const { fixture } = await prepararAdmin();
+    const pagina = fixture.componentInstance;
+    pagina['abrirRepuesto']();
+    pagina['datosRepuesto'] = { id: null, ...datos };
+    await pagina['guardarRepuesto']();
+    expect(pagina['errorOperacionRepuestos']()).not.toBe('');
+    http.expectNone(() => true);
+  });
+
+  it('Operador lee ambas secciones sin acciones ni solicitudes de escritura', async () => {
+    const { fixture, root, consultaServicios, consultaRepuestos } = preparar();
+    consultaServicios.flush(servicios); consultaRepuestos.flush(repuestos);
+    await fixture.whenStable(); fixture.detectChanges();
+    const textos = Array.from(root.querySelectorAll('button')).map(b => b.textContent?.trim());
+    expect(textos.some(texto => /Nuevo|Editar|Eliminar/.test(texto ?? ''))).toBe(false);
+    const pagina = fixture.componentInstance;
+    pagina['abrirServicio'](); pagina['abrirRepuesto']();
+    pagina['solicitarEliminarServicio'](servicios[0]); pagina['solicitarEliminarRepuesto'](repuestos[0]);
+    await pagina['guardarServicio'](); await pagina['guardarRepuesto']();
+    await pagina['eliminarServicio'](); await pagina['eliminarRepuesto']();
+    http.expectNone(() => true);
+    expect(root.querySelectorAll('table')).toHaveLength(2);
+    expect(root.querySelector('form')).toBeNull();
+  });
+
+  it('una escritura de servicios permite operar repuestos y refrescar solo la sección disponible', async () => {
+    const { fixture, root } = await prepararAdmin();
+    const pagina = fixture.componentInstance;
+    pagina['abrirServicio']();
+    pagina['datosServicio'] = { id: null, nombre: 'Servicio', descripcion: '', tarifa: 0 };
+    const guardado = pagina['guardarServicio']();
+    const escritura = http.expectOne(r => r.method === 'POST');
+    fixture.detectChanges();
+    expect(boton(root, 'Nuevo repuesto').disabled).toBe(false);
+    expect(boton(root, 'Actualizar').disabled).toBe(false);
+    boton(root, 'Actualizar').click();
+    http.expectNone(`${baseUrl}/api/catalog/services`);
+    http.expectOne(`${baseUrl}/api/catalog/spare-parts`).flush(repuestos);
+    escritura.flush({ id: 2, nombre: 'Servicio', descripcion: null, tarifa: 0 });
+    await Promise.resolve();
+    http.expectOne(`${baseUrl}/api/catalog/services`).flush(servicios);
+    await guardado;
+    await fixture.whenStable(); fixture.detectChanges();
+    expect(pagina['errorOperacionServicios']()).toBe('');
+  });
+
+  it('si falla la recarga tras guardar, mantiene el éxito y permite reintentar la lectura', async () => {
+    const { fixture } = await prepararAdmin();
+    const pagina = fixture.componentInstance;
+    pagina['abrirRepuesto']();
+    pagina['datosRepuesto'] = { id: null, nombre: 'Cable', descripcion: 'Cable', stock: 0 };
+    const guardado = pagina['guardarRepuesto']();
+    http.expectOne(r => r.method === 'POST').flush({ id: 8, nombre: 'Cable', descripcion: 'Cable', stock: 0 });
+    await Promise.resolve();
+    http.expectOne(`${baseUrl}/api/catalog/spare-parts`).flush({}, { status: 500, statusText: 'Error' });
+    await guardado;
+    expect(pagina['formularioRepuesto']()).toBe(false);
+    expect(pagina['mensajeRepuestos']()).toContain('guardado');
+    expect(pagina['errorOperacionRepuestos']()).toBe('');
+    expect(pagina['errorRepuestos']()).not.toBe('');
+  });
+
 });
