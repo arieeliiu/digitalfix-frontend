@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { HTTP_INTERCEPTORS, HttpClient, provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { MSAL_INTERCEPTOR_CONFIG, MsalInterceptor, MsalService, MsalBroadcastService } from '@azure/msal-angular';
-import { of } from 'rxjs';
+import { Observable, of } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { environment } from '../../environments/environment';
 import { crearConfiguracionInterceptor } from '../config/msal.config';
@@ -102,6 +102,46 @@ describe('Conexión autenticada al Gateway', () => {
     expect(req.request.method).toBe('GET');
     expect(req.request.headers.get('Authorization')).toBe('Bearer token-de-prueba');
     req.flush([]);
+  });
+
+  it.each(['POST', 'PUT', 'DELETE'])('%s de services usa Gateway, Bearer y contrato sin id', metodo => {
+    const api = TestBed.inject(ServicioApi);
+    const datos = { id: 99, nombre: 'Nombre', descripcion: 'Descripción', tarifa: 12345.67 };
+    const consulta: Observable<unknown> = metodo === 'POST' ? api.crearServicio(datos)
+      : metodo === 'PUT' ? api.actualizarServicio(3, datos) : api.eliminarServicio(3);
+    http.expectNone(() => true);
+    consulta.subscribe();
+    const req = http.expectOne(`${baseUrl}/api/catalog/services${metodo === 'POST' ? '' : '/3'}`);
+    expect(req.request.method).toBe(metodo);
+    expect(req.request.headers.get('Authorization')).toBe('Bearer token-de-prueba');
+    if (metodo !== 'DELETE') {
+      expect(req.request.body).toEqual({ nombre: 'Nombre', descripcion: 'Descripción', tarifa: 12345.67 });
+      expect(req.request.body).not.toHaveProperty('id');
+      req.flush({ id: 3, ...req.request.body });
+    } else {
+      expect(req.request.body).toBeNull();
+      req.flush(null, { status: 204, statusText: 'No Content' });
+    }
+  });
+
+  it.each(['POST', 'PUT', 'DELETE'])('%s de spare-parts usa Gateway, Bearer y contrato sin id', metodo => {
+    const api = TestBed.inject(ServicioApi);
+    const datos = { id: 99, nombre: 'Nombre', descripcion: 'Descripción', stock: 0 };
+    const consulta: Observable<unknown> = metodo === 'POST' ? api.crearRepuesto(datos)
+      : metodo === 'PUT' ? api.actualizarRepuesto(3, datos) : api.eliminarRepuesto(3);
+    http.expectNone(() => true);
+    consulta.subscribe();
+    const req = http.expectOne(`${baseUrl}/api/catalog/spare-parts${metodo === 'POST' ? '' : '/3'}`);
+    expect(req.request.method).toBe(metodo);
+    expect(req.request.headers.get('Authorization')).toBe('Bearer token-de-prueba');
+    if (metodo !== 'DELETE') {
+      expect(req.request.body).toEqual({ nombre: 'Nombre', descripcion: 'Descripción', stock: 0 });
+      expect(req.request.body).not.toHaveProperty('id');
+      req.flush({ id: 3, ...req.request.body });
+    } else {
+      expect(req.request.body).toBeNull();
+      req.flush(null, { status: 204, statusText: 'No Content' });
+    }
   });
 
   it('envía técnico y repuestos al cambiar estado', () => {

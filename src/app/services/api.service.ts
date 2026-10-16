@@ -21,6 +21,18 @@ export interface RepuestoCatalogo {
   stock: number;
 }
 
+export interface ServicioCatalogoRequest {
+  nombre: string;
+  descripcion: string | null;
+  tarifa: number;
+}
+
+export interface RepuestoCatalogoRequest {
+  nombre: string;
+  descripcion: string;
+  stock: number;
+}
+
 export interface NuevaOrden {
   servicioId: number;
   descripcion: string;
@@ -91,6 +103,42 @@ export class ServicioApi {
     return defer(() =>
       this.http.get<RepuestoCatalogo[]>(`${this.baseUrl()}/api/catalog/spare-parts`)
     );
+  }
+
+  crearServicio(datos: ServicioCatalogoRequest): Observable<ServicioCatalogo> {
+    const { nombre, descripcion, tarifa } = datos;
+    return defer(() => this.http.post<ServicioCatalogo>(
+      `${this.baseUrl()}/api/catalog/services`, { nombre, descripcion, tarifa }
+    ));
+  }
+
+  actualizarServicio(id: number, datos: ServicioCatalogoRequest): Observable<ServicioCatalogo> {
+    const { nombre, descripcion, tarifa } = datos;
+    return defer(() => this.http.put<ServicioCatalogo>(
+      `${this.baseUrl()}/api/catalog/services/${id}`, { nombre, descripcion, tarifa }
+    ));
+  }
+
+  eliminarServicio(id: number): Observable<void> {
+    return defer(() => this.http.delete<void>(`${this.baseUrl()}/api/catalog/services/${id}`));
+  }
+
+  crearRepuesto(datos: RepuestoCatalogoRequest): Observable<RepuestoCatalogo> {
+    const { nombre, descripcion, stock } = datos;
+    return defer(() => this.http.post<RepuestoCatalogo>(
+      `${this.baseUrl()}/api/catalog/spare-parts`, { nombre, descripcion, stock }
+    ));
+  }
+
+  actualizarRepuesto(id: number, datos: RepuestoCatalogoRequest): Observable<RepuestoCatalogo> {
+    const { nombre, descripcion, stock } = datos;
+    return defer(() => this.http.put<RepuestoCatalogo>(
+      `${this.baseUrl()}/api/catalog/spare-parts/${id}`, { nombre, descripcion, stock }
+    ));
+  }
+
+  eliminarRepuesto(id: number): Observable<void> {
+    return defer(() => this.http.delete<void>(`${this.baseUrl()}/api/catalog/spare-parts/${id}`));
   }
 
   listarOrdenes(): Observable<OrdenTrabajo[]> {
