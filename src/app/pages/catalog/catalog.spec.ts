@@ -86,6 +86,7 @@ describe('Catálogo de lectura', () => {
     correcta.flush(fallaServicios ? repuestos : servicios);
     await fixture.whenStable(); fixture.detectChanges();
     expect(root.querySelector('[role="alert"]')?.textContent).toContain(`No se pudieron cargar los ${seccion}`);
+    expect(root.querySelector('[role="alert"]')?.textContent).toContain('No se pudo completar la operación en el catálogo. Inténtalo nuevamente.');
     expect(root.textContent).toContain(fallaServicios ? 'Cable' : 'Mantención');
     expect(root.textContent).not.toContain(`No hay ${seccion} disponibles`);
     const reintentar = Array.from(root.querySelectorAll('button')).find(b => b.textContent?.trim() === `Reintentar ${seccion}`)!;
@@ -197,7 +198,10 @@ describe('Catálogo de lectura', () => {
     const req = http.expectOne(r => r.method !== 'GET');
     req.flush({}, { status: operacion === 'eliminar' ? 409 : operacion === 'editar' ? 404 : 400, statusText: 'Error' });
     await fixture.whenStable(); fixture.detectChanges();
-    expect(pagina['errorOperacionServicios']()).not.toBe('');
+    expect(pagina['errorOperacionServicios']()).toBe(operacion === 'eliminar'
+      ? 'No se pudo completar la operación porque existe un conflicto con el estado actual del catálogo.'
+      : operacion === 'editar' ? 'No se encontró el elemento del catálogo solicitado.'
+      : 'Revisa los datos ingresados en el catálogo.');
     expect(root.querySelector('[aria-labelledby="titulo-servicios"] [role="alert"]')).not.toBeNull();
     expect(pagina['servicios']()).toHaveLength(1);
     if (operacion !== 'eliminar') {
@@ -276,7 +280,10 @@ describe('Catálogo de lectura', () => {
     const req = http.expectOne(r => r.method !== 'GET');
     req.flush({}, { status: operacion === 'eliminar' ? 409 : operacion === 'editar' ? 404 : 400, statusText: 'Error' });
     await fixture.whenStable(); fixture.detectChanges();
-    expect(pagina['errorOperacionRepuestos']()).not.toBe('');
+    expect(pagina['errorOperacionRepuestos']()).toBe(operacion === 'eliminar'
+      ? 'No se pudo completar la operación porque existe un conflicto con el estado actual del catálogo.'
+      : operacion === 'editar' ? 'No se encontró el elemento del catálogo solicitado.'
+      : 'Revisa los datos ingresados en el catálogo.');
     expect(root.querySelector('[aria-labelledby="titulo-repuestos"] [role="alert"]')).not.toBeNull();
     expect(pagina['repuestos']()).toHaveLength(3);
     if (operacion !== 'eliminar') {

@@ -5,7 +5,7 @@ import { ServicioAutenticacion } from '../../services/auth.service';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ServicioApi, ServicioCatalogo, RepuestoCatalogo } from '../../services/api.service';
-import { mensajeErrorApi } from '../../services/error-api';
+import { mensajeErrorCatalogo } from '../../services/error-catalogo';
 
 @Component({
   selector: 'app-catalog', imports: [RouterLink, CurrencyPipe, FormsModule],
@@ -53,7 +53,7 @@ export class PaginaCatalog implements OnInit {
   private async recargarServicios(): Promise<void> {
     this.cargandoServicios.set(true); this.errorServicios.set(''); this.servicios.set([]);
     try { this.servicios.set(await firstValueFrom(this.api.listarServicios())); }
-    catch (error) { this.errorServicios.set(mensajeErrorApi(error)); }
+    catch (error) { this.errorServicios.set(mensajeErrorCatalogo(error)); }
     finally { this.cargandoServicios.set(false); }
   }
   protected async cargarRepuestos(): Promise<void> {
@@ -63,7 +63,7 @@ export class PaginaCatalog implements OnInit {
   private async recargarRepuestos(): Promise<void> {
     this.cargandoRepuestos.set(true); this.errorRepuestos.set(''); this.repuestos.set([]);
     try { this.repuestos.set(await firstValueFrom(this.api.listarRepuestos())); }
-    catch (error) { this.errorRepuestos.set(mensajeErrorApi(error)); }
+    catch (error) { this.errorRepuestos.set(mensajeErrorCatalogo(error)); }
     finally { this.cargandoRepuestos.set(false); }
   }
 
@@ -101,7 +101,7 @@ export class PaginaCatalog implements OnInit {
       this.resetearServicio();
       this.mensajeServicios.set('Servicio guardado correctamente.');
       await this.recargarServicios();
-    } catch (error) { this.errorOperacionServicios.set(mensajeErrorApi(error)); }
+    } catch (error) { this.errorOperacionServicios.set(mensajeErrorCatalogo(error)); }
     finally { this.guardandoServicios.set(false); }
   }
 
@@ -120,7 +120,7 @@ export class PaginaCatalog implements OnInit {
       this.pendienteServicio.set(null);
       this.mensajeServicios.set('Servicio eliminado correctamente.');
       await this.recargarServicios();
-    } catch (error) { this.errorOperacionServicios.set(mensajeErrorApi(error)); }
+    } catch (error) { this.errorOperacionServicios.set(mensajeErrorCatalogo(error)); }
     finally { this.eliminandoServicios.set(false); }
   }
 
@@ -158,7 +158,7 @@ export class PaginaCatalog implements OnInit {
       this.resetearRepuesto();
       this.mensajeRepuestos.set('Repuesto guardado correctamente.');
       await this.recargarRepuestos();
-    } catch (error) { this.errorOperacionRepuestos.set(mensajeErrorApi(error)); }
+    } catch (error) { this.errorOperacionRepuestos.set(mensajeErrorCatalogo(error)); }
     finally { this.guardandoRepuestos.set(false); }
   }
 
@@ -177,7 +177,7 @@ export class PaginaCatalog implements OnInit {
       this.pendienteRepuesto.set(null);
       this.mensajeRepuestos.set('Repuesto eliminado correctamente.');
       await this.recargarRepuestos();
-    } catch (error) { this.errorOperacionRepuestos.set(mensajeErrorApi(error)); }
+    } catch (error) { this.errorOperacionRepuestos.set(mensajeErrorCatalogo(error)); }
     finally { this.eliminandoRepuestos.set(false); }
   }
 }
