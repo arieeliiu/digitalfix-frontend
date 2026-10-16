@@ -9,6 +9,15 @@
 }
 
 .tabla-contenedor { overflow-x: auto; margin-top: 24px; }
+section { margin-top: 32px; }
+section h2 { font-size: 20px; }
+.sin-stock { background: #fef3c7; color: #92400e; }
+.celda-descripcion { overflow-wrap: anywhere; }
+.btn.btn-secundario {
+  background: white; color: #475569; border: 1px solid #dbe3ed;
+  &:hover:not(:disabled) { background: #f1f5f9; }
+  &:disabled { opacity: .55; cursor: not-allowed; }
+}
 
 .pagina {
   max-width: 1100px;

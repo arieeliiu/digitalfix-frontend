@@ -39,7 +39,7 @@
       </a>
       <a routerLink="/catalog"
          class="nav-enlace"
-         [class.oculto]="!autenticacion.tieneRol('Admin') && !autenticacion.tieneRol('Operador') && !autenticacion.tieneRol('Cliente')">
+         [class.oculto]="!autenticacion.tieneRol('Admin') && !autenticacion.tieneRol('Operador')">
         Catálogo técnico
       </a>
     </nav>
