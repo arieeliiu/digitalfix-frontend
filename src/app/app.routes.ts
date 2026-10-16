@@ -33,12 +33,12 @@ export const routes: Routes = [
     data: { roles: ['Admin', 'Operador', 'Cliente'] },
   },
 
-  // Catálogo de lectura disponible para seleccionar servicios al crear órdenes.
+  // Catálogo de lectura para los roles que gestionan servicios y repuestos.
   {
     path: 'catalog',
     component: PaginaCatalog,
     canActivate: [protegerPorRol],
-    data: { roles: ['Admin', 'Operador', 'Cliente'] },
+    data: { roles: ['Admin', 'Operador'] },
   },
 
   // Muestra un mensaje cuando la autenticación no puede completarse.
