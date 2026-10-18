@@ -410,6 +410,24 @@ Se encuentran operativos:
 
 ## Flujo de trabajo
 
+## Evaluación 2: contactos
+
+La creación admite correo del cliente y la asignación correo del técnico, ambos
+opcionales y validados hasta 254 caracteres. Sin correo del técnico se advierte
+que no se enviará el ticket de despacho. Los correos no sustituyen al `oid` de Entra.
+
+El detalle permite corregir contactos incluso en órdenes cerradas: propietario,
+su correo; Admin/Operador, ambos. Los campos no modificados se omiten del PATCH;
+vaciar un campo lo elimina. La autorización definitiva sigue en BFF/Workorders.
+Esta operación no cambia estado/stock ni reenvía mensajes anteriores.
+
+Validación del Paso 6: `npm test -- --watch=false` (109 aprobadas) y `npm run build`
+correcto. Se mantienen MSAL, interceptor y guards; sus pruebas usan dobles locales,
+no una sesión real Entra/AWS. Build con advertencias: inicial 643,66 kB frente a
+500 kB y estilos de órdenes 4,11 kB frente a 4 kB. No se relajaron los presupuestos.
+Antes de desplegar, API Gateway debe admitir PATCH y su preflight CORS; consultar
+la guía del Paso 6 en `digitalfix-infra`.
+
 Los cambios del proyecto se desarrollan en ramas independientes y se integran a `main` mediante Pull Request.
 
 La rama `main` representa la versión estable utilizada para la entrega.

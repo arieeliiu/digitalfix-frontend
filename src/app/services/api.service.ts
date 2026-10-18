@@ -37,6 +37,12 @@ export interface NuevaOrden {
   servicioId: number;
   descripcion: string;
   direccion: string;
+  emailContacto?: string | null;
+}
+
+export interface ContactosOrden {
+  emailContacto?: string | null;
+  emailTecnico?: string | null;
 }
 
 export interface RepuestoOrden {
@@ -55,6 +61,7 @@ export type EstadoOrden =
 export interface CambioEstado {
   status: EstadoOrden;
   tecnicoId?: string;
+  emailTecnico?: string | null;
   repuestos?: RepuestoOrden[];
 }
 
@@ -64,6 +71,7 @@ export interface OrdenTrabajo extends NuevaOrden {
   estado: EstadoOrden;
   fechaCreacion: string;
   tecnicoId?: string | null;
+  emailTecnico?: string | null;
   actualizadoPor?: string | null;
   fechaActualizacion?: string | null;
   repuestos?: RepuestoOrden[] | null;
@@ -158,7 +166,7 @@ export class ServicioApi {
   }
 
   crearOrden(orden: NuevaOrden): Observable<OrdenTrabajo> {
-    const { servicioId, descripcion, direccion } = orden;
+    const { servicioId, descripcion, direccion, emailContacto } = orden;
 
     return defer(() =>
       this.http.post<OrdenTrabajo>(
@@ -167,6 +175,7 @@ export class ServicioApi {
           servicioId,
           descripcion,
           direccion,
+          ...(emailContacto !== undefined ? { emailContacto } : {}),
         }
       )
     );
@@ -199,6 +208,7 @@ export class ServicioApi {
     const {
       status,
       tecnicoId,
+      emailTecnico,
       repuestos,
     } = cambio;
 
@@ -208,10 +218,21 @@ export class ServicioApi {
         {
           status,
           tecnicoId,
+          ...(emailTecnico !== undefined ? { emailTecnico } : {}),
           repuestos,
         }
       )
     );
+  }
+
+  actualizarContactos(id: number, contactos: ContactosOrden): Observable<OrdenTrabajo> {
+    const { emailContacto, emailTecnico } = contactos;
+    return defer(() => this.http.patch<OrdenTrabajo>(
+      `${this.baseUrl()}/api/workorders/${id}/contactos`, {
+        ...(emailContacto !== undefined ? { emailContacto } : {}),
+        ...(emailTecnico !== undefined ? { emailTecnico } : {}),
+      }
+    ));
   }
 
   eliminarOrden(id: number): Observable<void> {
