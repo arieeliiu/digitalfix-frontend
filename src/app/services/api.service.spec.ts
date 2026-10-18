@@ -145,12 +145,32 @@ describe('Conexión autenticada al Gateway', () => {
   });
 
   it('envía técnico y repuestos al cambiar estado', () => {
-    const cambio = { status: 'ASIGNADA' as const, tecnicoId: 'tecnico-01', repuestos: [{ repuestoId: 3, cantidad: 2 }] };
+    const cambio = { status: 'ASIGNADA' as const, tecnicoId: 'tecnico-01', emailTecnico: 'tecnico@example.org', repuestos: [{ repuestoId: 3, cantidad: 2 }] };
     TestBed.inject(ServicioApi).cambiarEstadoOrden(42, cambio).subscribe();
     const req = http.expectOne(`${baseUrl}/api/workorders/42/status`);
     expect(req.request.method).toBe('PUT');
     expect(req.request.body).toEqual(cambio);
     expect(req.request.headers.get('Authorization')).toBe('Bearer token-de-prueba');
     req.flush({});
+  });
+
+  it.each([{ emailContacto: '' }, { emailContacto: null }, { emailTecnico: 'tecnico@example.org' }])('PATCH conserva omisiones, nulos y vacíos con Bearer: %s', contactos => {
+    const datos = { ...contactos, actorId: 'ajeno' };
+    TestBed.inject(ServicioApi).actualizarContactos(42, datos).subscribe();
+    const req = http.expectOne(`${baseUrl}/api/workorders/42/contactos`);
+    expect(req.request.method).toBe('PATCH');
+    expect(req.request.headers.get('Authorization')).toBe('Bearer token-de-prueba');
+    expect(req.request.body).toEqual(contactos);
+    req.flush({});
+  });
+
+  it('crea con correo sin enviar identidad y lo conserva en la respuesta', () => {
+    const respuesta = vi.fn();
+    TestBed.inject(ServicioApi).crearOrden({ servicioId: 1, descripcion: 'Prueba', direccion: 'Calle', emailContacto: 'cliente@example.org' }).subscribe(respuesta);
+    const req = http.expectOne(`${baseUrl}/api/workorders`);
+    expect(req.request.body.emailContacto).toBe('cliente@example.org');
+    expect(req.request.body).not.toHaveProperty('solicitanteId');
+    req.flush({ id: 42, emailContacto: 'cliente@example.org', emailTecnico: null });
+    expect(respuesta).toHaveBeenCalledWith({ id: 42, emailContacto: 'cliente@example.org', emailTecnico: null });
   });
 });

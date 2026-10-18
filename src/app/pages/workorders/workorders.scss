@@ -2,6 +2,8 @@
   border-top: 1px solid #dbe3ec;
   padding-top: 12px;
 }
+.contacto { overflow-wrap: anywhere; }
+.advertencia { color: #854d0e; background: #fef9c3; padding: 12px; border-radius: 8px; }
 .repuesto {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 110px;

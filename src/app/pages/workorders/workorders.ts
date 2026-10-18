@@ -1,6 +1,6 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, FormControl, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ServicioApi, OrdenTrabajo, ServicioCatalogo, EstadoOrden, RepuestoCatalogo, RepuestoOrden } from '../../services/api.service';
@@ -33,6 +33,10 @@ export class PaginaWorkOrders implements OnInit {
   protected servicioId: number | null = null;
   protected descripcion = '';
   protected direccion = '';
+  protected emailContacto = '';
+  protected emailTecnico = '';
+  protected contactoCliente = '';
+  protected contactoTecnico = '';
   protected nuevoEstado: EstadoOrden | '' = '';
   protected tecnicoId = '';
   protected readonly estadosDisponibles = computed<EstadoOrden[]>(() => {
@@ -82,10 +86,14 @@ export class PaginaWorkOrders implements OnInit {
   protected async crear(): Promise<void> {
     if (this.ocupado() || !this.servicioId || !this.descripcion.trim() || !this.direccion.trim()
         || this.descripcion.length > 1000 || this.direccion.length > 300) return;
+    if (this.editandoId() === null && !this.correoValido(this.emailContacto)) {
+      this.error.set('Ingresa un correo de contacto válido de hasta 254 caracteres.'); return;
+    }
     this.guardando.set(true); this.error.set(''); this.mensaje.set('');
     try {
       const datos = {
         servicioId: this.servicioId, descripcion: this.descripcion.trim(), direccion: this.direccion.trim(),
+        ...(this.editandoId() === null && this.emailContacto.trim() ? { emailContacto: this.emailContacto.trim() } : {}),
       };
       const id = this.editandoId();
       if (id !== null && !this.ordenes().some(orden => orden.id === id && this.esPropia(orden) && orden.estado === 'CREADA')) return;
@@ -132,6 +140,7 @@ export class PaginaWorkOrders implements OnInit {
 
   protected cancelarEdicion(): void {
     this.editandoId.set(null); this.servicioId = null; this.descripcion = ''; this.direccion = '';
+    this.emailContacto = '';
   }
 
   protected solicitarEliminacion(orden: OrdenTrabajo): void {
@@ -162,6 +171,9 @@ export class PaginaWorkOrders implements OnInit {
       return;
     }
     const asignando = this.nuevoEstado === 'ASIGNADA';
+    if (asignando && !this.correoValido(this.emailTecnico)) {
+      this.error.set('Ingresa un correo del técnico válido de hasta 254 caracteres.'); return;
+    }
     const repuestos: RepuestoOrden[] = [];
     if (asignando) {
       for (const repuesto of this.repuestos()) {
@@ -178,11 +190,37 @@ export class PaginaWorkOrders implements OnInit {
       const actualizada = await firstValueFrom(this.api.cambiarEstadoOrden(orden.id, {
         status: this.nuevoEstado,
         ...(asignando ? { tecnicoId: this.tecnicoId.trim(), repuestos } : {}),
+        ...(asignando && this.emailTecnico.trim() ? { emailTecnico: this.emailTecnico.trim() } : {}),
       }));
       this.reemplazarOrden(actualizada); this.mostrarDetalle(actualizada);
       if (this.editandoId() === orden.id) this.cancelarEdicion();
       this.mensaje.set(`Estado de la orden #${orden.id} actualizado.`);
       if (asignando) await this.cargarRepuestos();
+    } catch (error) { this.error.set(mensajeErrorApi(error)); }
+    finally { this.guardando.set(false); }
+  }
+
+  protected correoValido(valor: string): boolean {
+    return new FormControl(valor.trim(), [Validators.email, Validators.maxLength(254)]).valid;
+  }
+
+  protected async guardarContactos(): Promise<void> {
+    const orden = this.seleccionada();
+    if (!orden || this.ocupado() || (!this.puedeGestionarEstado() && !this.esPropia(orden))) return;
+    if (!this.correoValido(this.contactoCliente) || (this.puedeGestionarEstado() && !this.correoValido(this.contactoTecnico))) {
+      this.error.set('Ingresa correos válidos de hasta 254 caracteres.'); return;
+    }
+    this.guardando.set(true); this.error.set(''); this.mensaje.set('');
+    try {
+      // Enviar solo cambios evita sobrescribir contactos que el usuario no editó.
+      const contactos = {
+        ...(this.contactoCliente.trim() !== (orden.emailContacto ?? '') ? { emailContacto: this.contactoCliente.trim() } : {}),
+        ...(this.puedeGestionarEstado() && this.contactoTecnico.trim() !== (orden.emailTecnico ?? '')
+          ? { emailTecnico: this.contactoTecnico.trim() } : {}),
+      };
+      const actualizada = await firstValueFrom(this.api.actualizarContactos(orden.id, contactos));
+      this.reemplazarOrden(actualizada); this.mostrarDetalle(actualizada);
+      this.mensaje.set('Contactos actualizados. No se reenvían mensajes anteriores automáticamente.');
     } catch (error) { this.error.set(mensajeErrorApi(error)); }
     finally { this.guardando.set(false); }
   }
@@ -194,5 +232,7 @@ export class PaginaWorkOrders implements OnInit {
   private mostrarDetalle(orden: OrdenTrabajo): void {
     this.cantidades = {};
     this.seleccionada.set(orden); this.nuevoEstado = ''; this.tecnicoId = orden.tecnicoId ?? '';
+    this.emailTecnico = orden.emailTecnico ?? '';
+    this.contactoCliente = orden.emailContacto ?? ''; this.contactoTecnico = orden.emailTecnico ?? '';
   }
 }
