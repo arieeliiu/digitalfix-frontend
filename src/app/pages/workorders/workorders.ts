@@ -34,6 +34,7 @@ export class PaginaWorkOrders implements OnInit {
   protected descripcion = '';
   protected direccion = '';
   protected emailContacto = '';
+  private emailContactoOriginal = '';
   protected emailTecnico = '';
   protected contactoCliente = '';
   protected contactoTecnico = '';
@@ -83,10 +84,18 @@ export class PaginaWorkOrders implements OnInit {
     return typeof oid === 'string' && oid === orden.solicitanteId;
   }
 
+  protected puedeEditar(orden: OrdenTrabajo): boolean {
+    return orden.estado === 'CREADA' && (this.auth.tieneRol('Admin') || this.esPropia(orden));
+  }
+
+  protected puedeEliminar(orden: OrdenTrabajo): boolean {
+    return ['CREADA', 'CANCELADA'].includes(orden.estado) && (this.auth.tieneRol('Admin') || this.esPropia(orden));
+  }
+
   protected async crear(): Promise<void> {
     if (this.ocupado() || !this.servicioId || !this.descripcion.trim() || !this.direccion.trim()
         || this.descripcion.length > 1000 || this.direccion.length > 300) return;
-    if (this.editandoId() === null && !this.correoValido(this.emailContacto)) {
+    if (!this.correoValido(this.emailContacto)) {
       this.error.set('Ingresa un correo de contacto válido de hasta 254 caracteres.'); return;
     }
     this.guardando.set(true); this.error.set(''); this.mensaje.set('');
@@ -96,10 +105,21 @@ export class PaginaWorkOrders implements OnInit {
         ...(this.editandoId() === null && this.emailContacto.trim() ? { emailContacto: this.emailContacto.trim() } : {}),
       };
       const id = this.editandoId();
-      if (id !== null && !this.ordenes().some(orden => orden.id === id && this.esPropia(orden) && orden.estado === 'CREADA')) return;
-      const orden = await firstValueFrom(id === null ? this.api.crearOrden(datos) : this.api.actualizarOrden(id, datos));
+      if (id !== null && !this.ordenes().some(orden => orden.id === id && this.puedeEditar(orden))) return;
+      let orden = await firstValueFrom(id === null ? this.api.crearOrden(datos) : this.api.actualizarOrden(id, datos));
       if (id === null) this.ordenes.update(ordenes => [orden, ...ordenes]);
       else this.reemplazarOrden(orden);
+      if (id !== null && this.emailContacto.trim() !== this.emailContactoOriginal) {
+        // PUT y PATCH son independientes: conservar la edición si falla el segundo.
+        this.mostrarDetalle(orden);
+        try {
+          orden = await firstValueFrom(this.api.actualizarContactos(id, { emailContacto: this.emailContacto.trim() }));
+          this.reemplazarOrden(orden);
+        } catch (error) {
+          this.error.set('Los datos de la orden se guardaron, pero no se pudo actualizar el correo. ' + mensajeErrorApi(error));
+          return;
+        }
+      }
       this.mostrarDetalle(orden);
       this.mensaje.set(`Orden #${orden.id} ${id === null ? 'creada' : 'actualizada'} correctamente.`);
       this.cancelarEdicion();
@@ -125,14 +145,16 @@ export class PaginaWorkOrders implements OnInit {
       const orden = await firstValueFrom(this.api.consultarOrden(id));
       this.mostrarDetalle(orden);
       this.reemplazarOrden(orden);
-      if (!this.esPropia(orden) || orden.estado !== 'CREADA') {
-        this.error.set('Solo se pueden editar órdenes propias en estado CREADA.');
+      if (!this.puedeEditar(orden)) {
+        this.error.set('Solo puedes editar órdenes en estado CREADA si eres su propietario o Admin.');
         return;
       }
       this.editandoId.set(id);
       this.servicioId = orden.servicioId;
       this.descripcion = orden.descripcion;
       this.direccion = orden.direccion;
+      this.emailContacto = orden.emailContacto ?? '';
+      this.emailContactoOriginal = this.emailContacto;
       this.pendienteEliminar.set(null);
     } catch (error) { this.error.set(mensajeErrorApi(error)); }
     finally { this.consultando.set(false); }
@@ -141,15 +163,16 @@ export class PaginaWorkOrders implements OnInit {
   protected cancelarEdicion(): void {
     this.editandoId.set(null); this.servicioId = null; this.descripcion = ''; this.direccion = '';
     this.emailContacto = '';
+    this.emailContactoOriginal = '';
   }
 
   protected solicitarEliminacion(orden: OrdenTrabajo): void {
-    if (!this.ocupado() && this.esPropia(orden) && ['CREADA', 'CANCELADA'].includes(orden.estado)) this.pendienteEliminar.set(orden);
+    if (!this.ocupado() && this.puedeEliminar(orden)) this.pendienteEliminar.set(orden);
   }
 
   protected async eliminar(): Promise<void> {
     const orden = this.pendienteEliminar();
-    if (!orden || this.ocupado() || !this.esPropia(orden) || !['CREADA', 'CANCELADA'].includes(orden.estado)) return;
+    if (!orden || this.ocupado() || !this.puedeEliminar(orden)) return;
     this.guardando.set(true); this.error.set(''); this.mensaje.set('');
     try {
       await firstValueFrom(this.api.eliminarOrden(orden.id));
