@@ -412,6 +412,23 @@ Se encuentran operativos:
 
 ## Evaluación 2: contactos
 
+### Ajuste de edición y permisos (19/10/2026)
+
+Admin puede editar cualquier orden CREADA y eliminar cualquier orden CREADA o CANCELADA.
+Cliente y Operador solo pueden realizar estas acciones sobre órdenes propias, en los
+mismos estados. La autorización definitiva se aplica en BFF y Workorders desde el JWT.
+
+Editar carga el correo del cliente y permite cambiarlo o vaciarlo (máximo 254 caracteres).
+Guardar envía primero los datos generales por PUT y solo después, si el correo cambió,
+PATCH `/contactos`. No son una transacción única: si PATCH falla se informa el guardado
+parcial, se conserva el formulario y no se anuncia éxito completo. Si PUT falla no se
+envía PATCH. Un correo sin cambios no se reenvía, evitando sobrescribir contactos más
+recientes. Se conserva «Corregir contactos» y el correo del técnico sigue en la asignación.
+
+Validación de este ajuste: 123 pruebas aprobadas, build Angular correcto con las
+advertencias de tamaño existentes (inicial 644,05 kB y SCSS 4,11 kB).
+Al integrar versiones, actualizar primero Workorders, después BFF y Frontend.
+
 La creación admite correo del cliente y la asignación correo del técnico, ambos
 opcionales y validados hasta 254 caracteres. Sin correo del técnico se advierte
 que no se enviará el ticket de despacho. Los correos no sustituyen al `oid` de Entra.

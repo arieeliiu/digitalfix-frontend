@@ -102,7 +102,7 @@ describe('Repuestos y permisos de órdenes', () => {
     listarRepuestos: vi.fn(() => of(catalogo)),
     consultarOrden: vi.fn(() => of(orden)),
     cambiarEstadoOrden: vi.fn(() => of<OrdenTrabajo>({ ...orden, estado: 'ASIGNADA', repuestos: [{ repuestoId: 3, cantidad: 2 }] })),
-    actualizarOrden: vi.fn(), eliminarOrden: vi.fn(),
+    actualizarOrden: vi.fn(() => of<OrdenTrabajo>(orden)), eliminarOrden: vi.fn(() => of(undefined)),
     actualizarContactos: vi.fn(() => of<OrdenTrabajo>({ ...orden, estado: 'CERRADA', emailContacto: null, emailTecnico: 'nuevo@example.org' })),
   };
   let rol: string;
@@ -111,6 +111,8 @@ describe('Repuestos y permisos de órdenes', () => {
     vi.clearAllMocks(); rol = 'Admin'; oid = 'admin';
     api.listarRepuestos.mockReturnValue(of(catalogo));
     api.consultarOrden.mockReturnValue(of(orden));
+    api.actualizarOrden.mockReturnValue(of(orden));
+    api.eliminarOrden.mockReturnValue(of(undefined));
     api.actualizarContactos.mockReturnValue(of({ ...orden, estado: 'CERRADA', emailContacto: null, emailTecnico: 'nuevo@example.org' }));
     api.cambiarEstadoOrden.mockReturnValue(of({ ...orden, estado: 'ASIGNADA', repuestos: [{ repuestoId: 3, cantidad: 2 }] }));
     TestBed.configureTestingModule({ imports: [PaginaWorkOrders], providers: [
@@ -189,7 +191,7 @@ describe('Repuestos y permisos de órdenes', () => {
     expect(api.listarRepuestos).toHaveBeenCalledTimes(1);
   });
 
-  it.each(['Admin', 'Operador'])('%s no edita ni elimina órdenes ajenas', async valor => {
+  it.each(['Cliente', 'Operador'])('%s no edita ni elimina órdenes ajenas', async valor => {
     rol = valor;
     const { pagina, root } = await preparar();
     const botones = Array.from(root.querySelectorAll('button')).map(b => b.textContent?.trim());
@@ -301,5 +303,95 @@ describe('Repuestos y permisos de órdenes', () => {
     expect(pagina['contactoCliente']).toBe('nuevo@example.org');
     expect(pagina['seleccionada']()?.emailContacto).toBeUndefined();
     expect(pagina['error']()).not.toBe('');
+  });
+
+  it('Admin ve las acciones y edita una orden ajena conservando el propietario', async () => {
+    const { pagina, fixture, root } = await preparar();
+    const botones = Array.from(root.querySelectorAll('button')).map(b => b.textContent?.trim());
+    expect(botones).toContain('Editar'); expect(botones).toContain('Eliminar');
+    await pagina['editar'](42); fixture.detectChanges(); await fixture.whenStable();
+    expect(root.querySelector('#email-contacto')).not.toBeNull();
+    pagina['descripcion'] = 'Cambio de Admin';
+    await pagina['crear']();
+    expect(api.actualizarOrden).toHaveBeenCalledWith(42, { servicioId: 1, descripcion: 'Cambio de Admin', direccion: 'Calle 123' });
+    expect(api.actualizarContactos).not.toHaveBeenCalled();
+  });
+
+  it.each(['CREADA', 'CANCELADA'] as const)('Admin elimina una orden ajena %s', async estado => {
+    const { pagina } = await preparar();
+    pagina['solicitarEliminacion']({ ...orden, estado });
+    await pagina['eliminar']();
+    expect(api.eliminarOrden).toHaveBeenCalledWith(42);
+  });
+
+  it.each(['Admin', 'Operador', 'Cliente'])('%s conserva restricciones de estado incluso en llamadas directas', async valor => {
+    rol = valor; oid = 'cliente';
+    const { pagina } = await preparar();
+    for (const estado of ['ASIGNADA', 'EN_DESPLAZAMIENTO', 'EN_EJECUCION', 'CERRADA', 'CANCELADA'] as const) {
+      const actual = { ...orden, estado };
+      api.consultarOrden.mockReturnValue(of(actual)); pagina['ordenes'].set([actual]);
+      expect(pagina['puedeEditar'](actual)).toBe(false);
+      await pagina['editar'](42); expect(pagina['editandoId']()).toBeNull();
+      if (estado !== 'CANCELADA') {
+        expect(pagina['puedeEliminar'](actual)).toBe(false);
+        pagina['pendienteEliminar'].set(actual); await pagina['eliminar']();
+      }
+    }
+    expect(api.actualizarOrden).not.toHaveBeenCalled(); expect(api.eliminarOrden).not.toHaveBeenCalled();
+  });
+
+  it.each(['nuevo@example.org', '', 'cliente@example.org'])('edición carga el correo y guarda el cambio %s solo cuando corresponde', async correo => {
+    const actual = { ...orden, emailContacto: 'cliente@example.org' };
+    api.consultarOrden.mockReturnValue(of(actual));
+    api.actualizarOrden.mockReturnValue(of(actual));
+    api.actualizarContactos.mockReturnValue(of({ ...actual, emailContacto: correo || null }));
+    const { pagina, fixture, root } = await preparar();
+    await pagina['editar'](42); fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    expect((root.querySelector('#email-contacto') as HTMLInputElement).value).toBe('cliente@example.org');
+    pagina['emailContacto'] = correo; await pagina['crear']();
+    if (correo === 'cliente@example.org') expect(api.actualizarContactos).not.toHaveBeenCalled();
+    else expect(api.actualizarContactos).toHaveBeenCalledWith(42, { emailContacto: correo });
+    expect(pagina['seleccionada']()?.emailContacto).toBe(correo || null);
+    expect(pagina['mensaje']()).toContain('actualizada correctamente');
+    expect(api.cambiarEstadoOrden).not.toHaveBeenCalled();
+  });
+
+  it('correo sin cambios no sobrescribe un contacto actualizado mientras se editaba', async () => {
+    api.consultarOrden.mockReturnValue(of({ ...orden, emailContacto: 'original@example.org' }));
+    api.actualizarOrden.mockReturnValue(of({ ...orden, emailContacto: 'reciente@example.org' }));
+    const { pagina } = await preparar();
+    await pagina['editar'](42); await pagina['crear']();
+    expect(api.actualizarContactos).not.toHaveBeenCalled();
+    expect(pagina['seleccionada']()?.emailContacto).toBe('reciente@example.org');
+  });
+
+  it.each(['invalido', 'a'.repeat(255) + '@example.org'])('rechaza correo inválido al editar: %s', async correo => {
+    const { pagina } = await preparar();
+    await pagina['editar'](42); pagina['emailContacto'] = correo;
+    await pagina['crear']();
+    expect(api.actualizarOrden).not.toHaveBeenCalled(); expect(api.actualizarContactos).not.toHaveBeenCalled();
+    expect(pagina['error']()).toContain('correo de contacto válido');
+  });
+
+  it('fallo de PUT conserva formulario y no ejecuta PATCH', async () => {
+    const { pagina } = await preparar();
+    await pagina['editar'](42); pagina['emailContacto'] = 'nuevo@example.org';
+    api.actualizarOrden.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 409 })));
+    await pagina['crear']();
+    expect(api.actualizarContactos).not.toHaveBeenCalled();
+    expect(pagina['editandoId']()).toBe(42); expect(pagina['emailContacto']).toBe('nuevo@example.org');
+    expect(pagina['mensaje']()).toBe(''); expect(pagina['error']()).not.toBe('');
+  });
+
+  it('fallo de PATCH informa guardado parcial y permite reintentar sin anunciar éxito completo', async () => {
+    const { pagina } = await preparar();
+    await pagina['editar'](42); pagina['emailContacto'] = 'nuevo@example.org';
+    api.actualizarContactos.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 503 })));
+    await pagina['crear']();
+    expect(pagina['mensaje']()).toBe(''); expect(pagina['error']()).toContain('Los datos de la orden se guardaron');
+    expect(pagina['editandoId']()).toBe(42); expect(pagina['emailContacto']).toBe('nuevo@example.org');
+    api.actualizarContactos.mockReturnValue(of({ ...orden, emailContacto: 'nuevo@example.org' }));
+    await pagina['crear']();
+    expect(pagina['editandoId']()).toBeNull(); expect(pagina['mensaje']()).toContain('actualizada correctamente');
   });
 });

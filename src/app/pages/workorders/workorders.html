@@ -30,12 +30,10 @@
           <textarea id="descripcion" name="descripcion" [(ngModel)]="descripcion" required maxlength="1000" rows="3"></textarea>
           <label for="direccion">Dirección</label>
           <input id="direccion" name="direccion" [(ngModel)]="direccion" required maxlength="300" />
-          @if (editandoId() === null) {
-            <label for="email-contacto">Correo de contacto del cliente (opcional)</label>
-            <input id="email-contacto" name="emailContacto" type="email" email maxlength="254" [(ngModel)]="emailContacto" #correoNuevo="ngModel" />
-            @if (correoNuevo.invalid && correoNuevo.dirty) {
-              <p class="mensaje-error" role="alert">Ingresa un correo válido de hasta 254 caracteres.</p>
-            }
+          <label for="email-contacto">Correo de contacto del cliente (opcional)</label>
+          <input id="email-contacto" name="emailContacto" type="email" email maxlength="254" [(ngModel)]="emailContacto" #correoNuevo="ngModel" />
+          @if (correoNuevo.invalid && correoNuevo.dirty) {
+            <p class="mensaje-error" role="alert">Ingresa un correo válido de hasta 254 caracteres.</p>
           }
           <button type="submit" class="btn btn-primario" [disabled]="form.invalid || !descripcion.trim() || !direccion.trim() || consultando()">
             {{ guardando() ? 'Guardando...' : editandoId() === null ? 'Crear orden' : 'Guardar cambios' }}
@@ -55,10 +53,10 @@
           <tr><td>#{{ orden.id }}</td><td>{{ orden.descripcion }}</td><td>{{ orden.estado }}</td><td>{{ orden.fechaCreacion | date:'dd/MM/yyyy HH:mm' }}</td>
             <td><div class="acciones-orden">
               <button type="button" class="btn btn-secundario" (click)="consultar(orden.id)" [disabled]="ocupado()">Consultar</button>
-              @if (esPropia(orden) && orden.estado === 'CREADA') {
+              @if (puedeEditar(orden)) {
                 <button type="button" class="btn btn-secundario" (click)="editar(orden.id)" [disabled]="ocupado()">Editar</button>
               }
-              @if (esPropia(orden) && (orden.estado === 'CREADA' || orden.estado === 'CANCELADA')) {
+              @if (puedeEliminar(orden)) {
                 <button type="button" class="btn btn-peligro" (click)="solicitarEliminacion(orden)" [disabled]="ocupado()">Eliminar</button>
               }
             </div></td></tr>
