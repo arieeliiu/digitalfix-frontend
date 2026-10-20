@@ -127,6 +127,7 @@ describe('Repuestos y permisos de órdenes', () => {
     consultarOrden: vi.fn(() => of(orden)),
     cambiarEstadoOrden: vi.fn(() => of<OrdenTrabajo>({ ...orden, estado: 'ASIGNADA', repuestos: [{ repuestoId: 3, cantidad: 2 }] })),
     actualizarOrden: vi.fn(() => of<OrdenTrabajo>(orden)), eliminarOrden: vi.fn(() => of(undefined)),
+    actualizarRepuestosOrden: vi.fn(() => of<OrdenTrabajo>(orden)),
     actualizarContactos: vi.fn(() => of<OrdenTrabajo>({ ...orden, estado: 'CERRADA', emailContacto: null, emailTecnico: 'nuevo@example.org' })),
   };
   let rol: string;
@@ -136,6 +137,7 @@ describe('Repuestos y permisos de órdenes', () => {
     api.listarRepuestos.mockReturnValue(of(catalogo));
     api.consultarOrden.mockReturnValue(of(orden));
     api.actualizarOrden.mockReturnValue(of(orden));
+    api.actualizarRepuestosOrden.mockReturnValue(of(orden));
     api.eliminarOrden.mockReturnValue(of(undefined));
     api.actualizarContactos.mockReturnValue(of({ ...orden, estado: 'CERRADA', emailContacto: null, emailTecnico: 'nuevo@example.org' }));
     api.cambiarEstadoOrden.mockReturnValue(of({ ...orden, estado: 'ASIGNADA', repuestos: [{ repuestoId: 3, cantidad: 2 }] }));
@@ -331,39 +333,45 @@ describe('Repuestos y permisos de órdenes', () => {
   });
 
   it.each(['ASIGNADA', 'EN_DESPLAZAMIENTO', 'EN_EJECUCION'] as const)
-  ('permite corregir el correo del técnico tras %s sin alterar repuestos', async estado => {
-    const actual = { ...orden, estado, tecnicoId: 'tecnico-1', emailTecnico: 'viejo@example.org',
-      repuestos: [{ repuestoId: 3, cantidad: 2 }] };
+  ('conserva el formulario original y permite editar correos y repuestos tras %s', async estado => {
+    const actual = { ...orden, estado, tecnicoId: 'tecnico-1', emailContacto: 'cliente@example.org',
+      emailTecnico: 'viejo@example.org', repuestos: [{ repuestoId: 3, cantidad: 2 }] };
     api.consultarOrden.mockReturnValue(of(actual));
     api.actualizarContactos.mockReturnValue(of({ ...actual, emailTecnico: 'nuevo@example.org' }));
+    api.actualizarRepuestosOrden.mockReturnValue(of({ ...actual, repuestos: [{ repuestoId: 3, cantidad: 3 }] }));
     const { pagina, fixture, root } = await preparar();
     pagina['ordenes'].set([actual]); fixture.detectChanges();
-    expect(pagina['puedeEditar'](actual)).toBe(true);
     await pagina['editar'](42); fixture.detectChanges();
     expect(pagina['editandoAsignacion']()).toBe(true);
+    expect(root.querySelector('#servicio')).not.toBeNull();
+    expect(root.querySelector('#descripcion')).not.toBeNull();
+    expect(root.querySelector('#direccion')).not.toBeNull();
+    expect(root.querySelector('#email-contacto')).not.toBeNull();
     expect((root.querySelector('#editar-email-tecnico') as HTMLInputElement).value).toBe('viejo@example.org');
-    expect(root.querySelector('#email-contacto')).toBeNull();
+    expect(root.querySelector('#editar-repuesto-3')).not.toBeNull();
+    expect((root.querySelector('#editar-repuesto-3') as HTMLInputElement).value).toBe('2');
     pagina['emailTecnico'] = 'nuevo@example.org';
-    await pagina['guardarCorreoTecnico']();
+    pagina['cantidadesEdicion'] = { 3: 3 };
+    await pagina['crear']();
+    expect(api.actualizarRepuestosOrden).toHaveBeenCalledWith(42, {
+      anteriores: [{ repuestoId: 3, cantidad: 2 }], nuevos: [{ repuestoId: 3, cantidad: 3 }],
+    });
     expect(api.actualizarContactos).toHaveBeenCalledWith(42, { emailTecnico: 'nuevo@example.org' });
     expect(api.actualizarOrden).not.toHaveBeenCalled();
-    expect(pagina['ordenes']()[0].estado).toBe(estado);
-    expect(pagina['ordenes']()[0].repuestos).toEqual(actual.repuestos);
     expect(pagina['editandoId']()).toBeNull();
   });
 
-  it('rechaza correo de técnico vacío o inválido al editar la asignación', async () => {
-    const actual = { ...orden, estado: 'ASIGNADA' as const, tecnicoId: 'tecnico-1', emailTecnico: 'viejo@example.org' };
+  it('rechaza correo técnico inválido al editar y no modifica inventario', async () => {
+    const actual = { ...orden, estado: 'ASIGNADA' as const, tecnicoId: 'tecnico-1',
+      emailContacto: 'cliente@example.org', emailTecnico: 'viejo@example.org' };
     api.consultarOrden.mockReturnValue(of(actual));
     const { pagina } = await preparar();
     pagina['ordenes'].set([actual]);
     await pagina['editar'](42);
-    pagina['emailTecnico'] = '  ';
-    await pagina['guardarCorreoTecnico']();
-    expect(api.actualizarContactos).not.toHaveBeenCalled();
     pagina['emailTecnico'] = 'invalido';
-    await pagina['guardarCorreoTecnico']();
+    await pagina['crear']();
     expect(api.actualizarContactos).not.toHaveBeenCalled();
+    expect(api.actualizarRepuestosOrden).not.toHaveBeenCalled();
   });
 
   it('Consultar abre un modal y no ofrece editar el correo del cliente allí', async () => {
