@@ -28,6 +28,15 @@ export class PaginaWorkOrders implements OnInit {
   protected readonly consultando = signal(false);
   protected readonly editandoId = signal<number | null>(null);
   protected readonly editandoAsignacion = signal(false);
+  protected readonly repuestosEdicion = computed(() => {
+    const disponibles = this.repuestos();
+    const antiguos = this.repuestosOriginales;
+    return [...disponibles, ...antiguos.filter(x => !disponibles.some(r => r.id === x.repuestoId))
+      .map(x => ({ id: x.repuestoId, nombre: `Repuesto #${x.repuestoId}`, descripcion: null, stock: 0 }))];
+  });
+  protected cantidadesEdicion: Record<number, number | null> = {};
+  private repuestosOriginales: RepuestoOrden[] = [];
+  private readonly editarSinStock = signal(false);
   protected readonly modalOrdenAbierto = signal(false);
   protected readonly modalDetalleAbierto = signal(false);
   protected readonly pendienteEliminar = signal<OrdenTrabajo | null>(null);
@@ -158,38 +167,65 @@ export class PaginaWorkOrders implements OnInit {
     this.cerrarDetalle();
   }
 
-  // La corrección posterior usa PATCH /contactos; PUT solo permite editar órdenes CREADAS.
-  protected async guardarCorreoTecnico(): Promise<void> {
-    const id = this.editandoId();
-    const orden = this.ordenes().find(actual => actual.id === id);
-    if (id === null || !orden || !this.editandoAsignacion()
-        || !this.puedeEditarTecnico(orden) || this.ocupado()) return;
-    if (!this.correoValido(this.emailTecnico, true)) {
-      this.error.set('Ingresa un correo del técnico válido de hasta 254 caracteres.');
-      return;
+  protected cantidadOriginal(id: number): number {
+    return this.repuestosOriginales.find(r => r.repuestoId === id)?.cantidad ?? 0;
+  }
+
+  private async guardarAsignacion(id: number): Promise<void> {
+    const actual = this.ordenes().find(o => o.id === id);
+    if (!actual || !this.puedeEditarTecnico(actual)) return;
+    if (!this.correoValido(this.emailContacto, true) || !this.correoValido(this.emailTecnico, true)) {
+      this.error.set('Ingresa los correos válidos del cliente y del técnico.'); return;
     }
-    if (this.emailTecnico.trim() === this.emailTecnicoOriginal) {
-      this.cancelarEdicion();
-      return;
+    const lista = this.repuestosEdicion().map(r => ({
+      repuestoId: r.id, cantidad: this.cantidadesEdicion[r.id] ?? 0,
+    }));
+    for (const r of lista) {
+      const max = (this.repuestos().find(x => x.id === r.repuestoId)?.stock ?? 0) + this.cantidadOriginal(r.repuestoId);
+      if (!Number.isInteger(r.cantidad) || r.cantidad < 0 || r.cantidad > max) {
+        this.error.set('Revisa las cantidades de repuestos y su stock disponible.'); return;
+      }
     }
-    this.guardando.set(true);
-    this.error.set('');
-    this.mensaje.set('');
+    const nuevos = lista.filter(r => r.cantidad > 0) as RepuestoOrden[];
+    const cambioRepuestos = JSON.stringify([...nuevos].sort((a,b)=>a.repuestoId-b.repuestoId))
+      !== JSON.stringify([...this.repuestosOriginales].sort((a,b)=>a.repuestoId-b.repuestoId));
+    const contactos = {
+      ...(this.emailContacto.trim() !== this.emailContactoOriginal ? { emailContacto: this.emailContacto.trim() } : {}),
+      ...(this.emailTecnico.trim() !== this.emailTecnicoOriginal ? { emailTecnico: this.emailTecnico.trim() } : {}),
+    };
+    this.guardando.set(true); this.error.set(''); this.mensaje.set('');
     try {
-      const actualizada = await firstValueFrom(this.api.actualizarContactos(id, {
-        emailTecnico: this.emailTecnico.trim(),
-      }));
-      this.reemplazarOrden(actualizada);
+      if (cambioRepuestos) {
+        const orden = await firstValueFrom(this.api.actualizarRepuestosOrden(id, {
+          anteriores: this.repuestosOriginales, nuevos,
+        }));
+        this.reemplazarOrden(orden);
+        this.repuestosOriginales = orden.repuestos ?? [];
+        await this.cargarRepuestosEdicion();
+      }
+      if (Object.keys(contactos).length) {
+        const orden = await firstValueFrom(this.api.actualizarContactos(id, contactos));
+        this.reemplazarOrden(orden);
+      }
+      this.mensaje.set(`Orden #${id} actualizada correctamente.`);
       this.cancelarEdicion();
-      this.mensaje.set(`Correo del técnico de la orden #${id} actualizado correctamente.`);
     } catch (error) {
-      this.error.set(mensajeErrorApi(error));
+      this.error.set('No se pudieron guardar todos los cambios. Revisa la orden antes de reintentar. ' + mensajeErrorApi(error));
     } finally {
       this.guardando.set(false);
     }
   }
 
+  private async cargarRepuestosEdicion(): Promise<void> {
+    try { this.repuestos.set(await firstValueFrom(this.api.listarRepuestos())); }
+    catch (error) { this.errorRepuestos.set(mensajeErrorApi(error)); }
+  }
+
   protected async crear(): Promise<void> {
+    if (this.editandoAsignacion() && this.editandoId() !== null) {
+      await this.guardarAsignacion(this.editandoId()!);
+      return;
+    }
     if (this.ocupado() || !this.servicioId || !this.descripcion.trim() || !this.direccion.trim()
         || this.descripcion.length > 1000 || this.direccion.length > 300) return;
     if (!this.correoValido(this.emailContacto, true)) {
@@ -256,6 +292,8 @@ export class PaginaWorkOrders implements OnInit {
       this.tecnicoId = orden.tecnicoId ?? '';
       this.emailTecnico = orden.emailTecnico ?? '';
       this.emailTecnicoOriginal = this.emailTecnico;
+      this.repuestosOriginales = [...(orden.repuestos ?? [])];
+      this.cantidadesEdicion = Object.fromEntries(this.repuestosOriginales.map(r => [r.repuestoId, r.cantidad]));
       this.pendienteEliminar.set(null);
       this.abrirModal();
     } catch (error) { this.error.set(mensajeErrorApi(error)); }
@@ -269,6 +307,7 @@ export class PaginaWorkOrders implements OnInit {
     this.servicioId = null; this.descripcion = ''; this.direccion = '';
     this.emailContacto = ''; this.emailContactoOriginal = '';
     this.emailTecnico = ''; this.emailTecnicoOriginal = '';
+    this.repuestosOriginales = []; this.cantidadesEdicion = {};
   }
 
   protected solicitarEliminacion(orden: OrdenTrabajo): void {
