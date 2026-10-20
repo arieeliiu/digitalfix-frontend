@@ -58,6 +58,11 @@ export type EstadoOrden =
   | 'CERRADA'
   | 'CANCELADA';
 
+export interface ActualizarRepuestosOrden {
+  anteriores: RepuestoOrden[];
+  nuevos: RepuestoOrden[];
+}
+
 export interface CambioEstado {
   status: EstadoOrden;
   tecnicoId?: string;
@@ -223,6 +228,12 @@ export class ServicioApi {
         }
       )
     );
+  }
+
+  actualizarRepuestosOrden(id: number, datos: ActualizarRepuestosOrden): Observable<OrdenTrabajo> {
+    return defer(() => this.http.put<OrdenTrabajo>(
+      `${this.baseUrl()}/api/workorders/${id}/repuestos`, datos
+    ));
   }
 
   actualizarContactos(id: number, contactos: ContactosOrden): Observable<OrdenTrabajo> {

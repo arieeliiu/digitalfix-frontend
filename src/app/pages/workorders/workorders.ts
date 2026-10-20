@@ -27,6 +27,15 @@ export class PaginaWorkOrders implements OnInit {
   protected readonly guardando = signal(false);
   protected readonly consultando = signal(false);
   protected readonly editandoId = signal<number | null>(null);
+  protected readonly editandoAsignacion = signal(false);
+  protected repuestosEdicion(): RepuestoCatalogo[] {
+    const disponibles = this.repuestos();
+    const antiguos = this.repuestosOriginales;
+    return [...disponibles, ...antiguos.filter(x => !disponibles.some(r => r.id === x.repuestoId))
+      .map(x => ({ id: x.repuestoId, nombre: `Repuesto #${x.repuestoId}`, descripcion: null, stock: 0 }))];
+  }
+  protected cantidadesEdicion: Record<number, number | null> = {};
+  private repuestosOriginales: RepuestoOrden[] = [];
   protected readonly modalOrdenAbierto = signal(false);
   protected readonly modalDetalleAbierto = signal(false);
   protected readonly pendienteEliminar = signal<OrdenTrabajo | null>(null);
@@ -40,6 +49,7 @@ export class PaginaWorkOrders implements OnInit {
   protected emailContacto = '';
   private emailContactoOriginal = '';
   protected emailTecnico = '';
+  private emailTecnicoOriginal = '';
   protected nuevoEstado: EstadoOrden | '' = '';
   protected tecnicoId = '';
   protected readonly estadosDisponibles = computed<EstadoOrden[]>(() => {
@@ -82,13 +92,30 @@ export class PaginaWorkOrders implements OnInit {
     return this.repuestos().find(repuesto => repuesto.id === id)?.nombre ?? `Repuesto #${id}`;
   }
 
+  // Convertir los estados a etiquetas legibles, conservando los valores de la API.
+  protected nombreEstado(estado: EstadoOrden): string {
+    const etiquetas: Record<EstadoOrden, string> = {
+      CREADA: 'CREADA', ASIGNADA: 'ASIGNADA',
+      EN_DESPLAZAMIENTO: 'EN DESPLAZAMIENTO',
+      EN_EJECUCION: 'EN EJECUCIÓN',
+      CERRADA: 'CERRADA', CANCELADA: 'CANCELADA',
+    };
+    return etiquetas[estado];
+  }
+
+  private puedeEditarTecnico(orden: OrdenTrabajo): boolean {
+    return this.puedeGestionarEstado() && !!orden.tecnicoId
+      && ['ASIGNADA', 'EN_DESPLAZAMIENTO', 'EN_EJECUCION'].includes(orden.estado);
+  }
+
   protected esPropia(orden: OrdenTrabajo): boolean {
     const oid = this.auth.obtenerCuentaActiva()?.idTokenClaims?.oid;
     return typeof oid === 'string' && oid === orden.solicitanteId;
   }
 
   protected puedeEditar(orden: OrdenTrabajo): boolean {
-    return orden.estado === 'CREADA' && (this.auth.tieneRol('Admin') || this.esPropia(orden));
+    return (orden.estado === 'CREADA' && (this.auth.tieneRol('Admin') || this.esPropia(orden)))
+      || this.puedeEditarTecnico(orden);
   }
 
   protected puedeEliminar(orden: OrdenTrabajo): boolean {
@@ -139,7 +166,67 @@ export class PaginaWorkOrders implements OnInit {
     this.cerrarDetalle();
   }
 
+  protected cantidadOriginal(id: number): number {
+    return this.repuestosOriginales.find(r => r.repuestoId === id)?.cantidad ?? 0;
+  }
+
+  private async guardarAsignacion(id: number): Promise<void> {
+    const actual = this.ordenes().find(o => o.id === id);
+    if (!actual || !this.puedeEditarTecnico(actual)) return;
+    if (!this.servicioId || !this.descripcion.trim() || !this.direccion.trim() || this.descripcion.length > 1000 || this.direccion.length > 300 || !this.correoValido(this.emailContacto, true) || !this.correoValido(this.emailTecnico, true)) {
+      this.error.set('Ingresa los correos válidos del cliente y del técnico.'); return;
+    }
+    const lista = this.repuestosEdicion().map(r => ({
+      repuestoId: r.id, cantidad: this.cantidadesEdicion[r.id] ?? 0,
+    }));
+    for (const r of lista) {
+      const max = (this.repuestos().find(x => x.id === r.repuestoId)?.stock ?? 0) + this.cantidadOriginal(r.repuestoId);
+      if (typeof r.cantidad !== 'number' || !Number.isInteger(r.cantidad) || r.cantidad < 0 || r.cantidad > max) {
+        this.error.set('Revisa las cantidades de repuestos y su stock disponible.'); return;
+      }
+    }
+    const nuevos = lista.filter(r => r.cantidad > 0) as RepuestoOrden[];
+    const cambioRepuestos = JSON.stringify([...nuevos].sort((a,b)=>a.repuestoId-b.repuestoId))
+      !== JSON.stringify([...this.repuestosOriginales].sort((a,b)=>a.repuestoId-b.repuestoId));
+    const contactos = {
+      ...(this.emailContacto.trim() !== this.emailContactoOriginal ? { emailContacto: this.emailContacto.trim() } : {}),
+      ...(this.emailTecnico.trim() !== this.emailTecnicoOriginal ? { emailTecnico: this.emailTecnico.trim() } : {}),
+    };
+    this.guardando.set(true); this.error.set(''); this.mensaje.set('');
+    try {
+      const datosGenerales = await firstValueFrom(this.api.actualizarOrden(id, { servicioId: this.servicioId!, descripcion: this.descripcion.trim(), direccion: this.direccion.trim() }));
+      this.reemplazarOrden(datosGenerales);
+      if (cambioRepuestos) {
+        const orden = await firstValueFrom(this.api.actualizarRepuestosOrden(id, {
+          anteriores: this.repuestosOriginales, nuevos,
+        }));
+        this.reemplazarOrden(orden);
+        this.repuestosOriginales = orden.repuestos ?? [];
+        await this.cargarRepuestosEdicion();
+      }
+      if (Object.keys(contactos).length) {
+        const orden = await firstValueFrom(this.api.actualizarContactos(id, contactos));
+        this.reemplazarOrden(orden);
+      }
+      this.mensaje.set(`Orden #${id} actualizada correctamente.`);
+      this.cancelarEdicion();
+    } catch (error) {
+      this.error.set('No se pudieron guardar todos los cambios. Revisa la orden antes de reintentar. ' + mensajeErrorApi(error));
+    } finally {
+      this.guardando.set(false);
+    }
+  }
+
+  private async cargarRepuestosEdicion(): Promise<void> {
+    try { this.repuestos.set(await firstValueFrom(this.api.listarRepuestos())); }
+    catch (error) { this.errorRepuestos.set(mensajeErrorApi(error)); }
+  }
+
   protected async crear(): Promise<void> {
+    if (this.editandoAsignacion() && this.editandoId() !== null) {
+      await this.guardarAsignacion(this.editandoId()!);
+      return;
+    }
     if (this.ocupado() || !this.servicioId || !this.descripcion.trim() || !this.direccion.trim()
         || this.descripcion.length > 1000 || this.direccion.length > 300) return;
     if (!this.correoValido(this.emailContacto, true)) {
@@ -193,15 +280,21 @@ export class PaginaWorkOrders implements OnInit {
       const orden = await firstValueFrom(this.api.consultarOrden(id));
       this.reemplazarOrden(orden);
       if (!this.puedeEditar(orden)) {
-        this.error.set('Solo puedes editar órdenes en estado CREADA si eres su propietario o Admin.');
+        this.error.set('No tienes permisos para editar esta orden en su estado actual.');
         return;
       }
+      this.editandoAsignacion.set(orden.estado !== 'CREADA');
       this.editandoId.set(id);
       this.servicioId = orden.servicioId;
       this.descripcion = orden.descripcion;
       this.direccion = orden.direccion;
       this.emailContacto = orden.emailContacto ?? '';
       this.emailContactoOriginal = this.emailContacto;
+      this.tecnicoId = orden.tecnicoId ?? '';
+      this.emailTecnico = orden.emailTecnico ?? '';
+      this.emailTecnicoOriginal = this.emailTecnico;
+      this.repuestosOriginales = [...(orden.repuestos ?? [])];
+      this.cantidadesEdicion = Object.fromEntries(this.repuestosOriginales.map(r => [r.repuestoId, r.cantidad]));
       this.pendienteEliminar.set(null);
       this.abrirModal();
     } catch (error) { this.error.set(mensajeErrorApi(error)); }
@@ -211,9 +304,11 @@ export class PaginaWorkOrders implements OnInit {
   protected cancelarEdicion(): void {
     if (this.modalOrden?.nativeElement.open) this.modalOrden.nativeElement.close();
     this.modalOrdenAbierto.set(false);
-    this.editandoId.set(null); this.servicioId = null; this.descripcion = ''; this.direccion = '';
-    this.emailContacto = '';
-    this.emailContactoOriginal = '';
+    this.editandoId.set(null); this.editandoAsignacion.set(false);
+    this.servicioId = null; this.descripcion = ''; this.direccion = '';
+    this.emailContacto = ''; this.emailContactoOriginal = '';
+    this.emailTecnico = ''; this.emailTecnicoOriginal = '';
+    this.repuestosOriginales = []; this.cantidadesEdicion = {};
   }
 
   protected solicitarEliminacion(orden: OrdenTrabajo): void {
