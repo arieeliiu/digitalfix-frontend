@@ -173,7 +173,7 @@ export class PaginaWorkOrders implements OnInit {
   private async guardarAsignacion(id: number): Promise<void> {
     const actual = this.ordenes().find(o => o.id === id);
     if (!actual || !this.puedeEditarTecnico(actual)) return;
-    if (!this.correoValido(this.emailContacto, true) || !this.correoValido(this.emailTecnico, true)) {
+    if (!this.servicioId || !this.descripcion.trim() || !this.direccion.trim() || this.descripcion.length > 1000 || this.direccion.length > 300 || !this.correoValido(this.emailContacto, true) || !this.correoValido(this.emailTecnico, true)) {
       this.error.set('Ingresa los correos válidos del cliente y del técnico.'); return;
     }
     const lista = this.repuestosEdicion().map(r => ({
@@ -194,6 +194,8 @@ export class PaginaWorkOrders implements OnInit {
     };
     this.guardando.set(true); this.error.set(''); this.mensaje.set('');
     try {
+      const datosGenerales = await firstValueFrom(this.api.actualizarOrden(id, { servicioId: this.servicioId!, descripcion: this.descripcion.trim(), direccion: this.direccion.trim() }));
+      this.reemplazarOrden(datosGenerales);
       if (cambioRepuestos) {
         const orden = await firstValueFrom(this.api.actualizarRepuestosOrden(id, {
           anteriores: this.repuestosOriginales, nuevos,
