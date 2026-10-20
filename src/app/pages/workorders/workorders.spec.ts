@@ -39,7 +39,7 @@ describe('Formulario de órdenes reales', () => {
     });
     const select = root.querySelector('select')!;
     select.selectedIndex = 1; select.dispatchEvent(new Event('change'));
-    for (const [id, value] of [['descripcion', 'Revisión'], ['direccion', 'Calle 123']]) {
+    for (const [id, value] of [['descripcion', 'Revisión'], ['direccion', 'Calle 123'], ['email-contacto', 'cliente@example.org']]) {
       const input = root.querySelector(`#${id}`) as HTMLInputElement;
       input.value = value; input.dispatchEvent(new Event('input'));
     }
@@ -51,7 +51,7 @@ describe('Formulario de órdenes reales', () => {
     const { fixture, root } = await prepararFormulario();
     root.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
     await fixture.whenStable(); fixture.detectChanges();
-    expect(api.crearOrden).toHaveBeenCalledWith({ servicioId: 1, descripcion: 'Revisión', direccion: 'Calle 123' });
+    expect(api.crearOrden).toHaveBeenCalledWith({ servicioId: 1, descripcion: 'Revisión', direccion: 'Calle 123', emailContacto: 'cliente@example.org' });
     expect(root.textContent).toContain('Orden #42 creada correctamente.');
     expect(root.textContent).toContain('CREADA');
     const consultar = Array.from(root.querySelectorAll('button')).find(b => b.textContent?.trim() === 'Consultar')!;
@@ -70,7 +70,7 @@ describe('Formulario de órdenes reales', () => {
     expect((root.querySelector('#descripcion') as HTMLTextAreaElement).value).toBe('Revisión');
   });
 
-  it('valida y envía el correo opcional sin convertirlo en identidad', async () => {
+  it('valida y envía el correo obligatorio sin convertirlo en identidad', async () => {
     const { fixture, root } = await prepararFormulario();
     const campo = root.querySelector('#email-contacto') as HTMLInputElement;
     expect(campo.type).toBe('email'); expect(campo.maxLength).toBe(254);
@@ -84,12 +84,21 @@ describe('Formulario de órdenes reales', () => {
     await fixture.componentInstance['crear']();
     expect(api.crearOrden).toHaveBeenCalledWith({ servicioId: 1, descripcion: 'Revisión', direccion: 'Calle 123', emailContacto: 'cliente@example.org' });
   });
+  it.each(['', '   ', 'invalido', 'a'.repeat(255) + '@example.org'])('no crea sin correo válido: %s', async correo => {
+    const { fixture, root } = await prepararFormulario();
+    const campo = root.querySelector('#email-contacto') as HTMLInputElement;
+    expect(campo.required).toBe(true);
+    expect(root.querySelector('#email-tecnico')).toBeNull();
+    fixture.componentInstance['emailContacto'] = correo;
+    await fixture.componentInstance['crear']();
+    expect(api.crearOrden).not.toHaveBeenCalled();
+  });
 });
 
 describe('Repuestos y permisos de órdenes', () => {
   const orden: OrdenTrabajo = {
     id: 42, servicioId: 1, descripcion: 'Revisión', direccion: 'Calle 123',
-    estado: 'CREADA', fechaCreacion: '2026-09-15T00:00:00Z', solicitanteId: 'cliente',
+    estado: 'CREADA', fechaCreacion: '2026-09-15T00:00:00Z', solicitanteId: 'cliente', emailContacto: 'cliente@example.org',
   };
   const catalogo = [
     { id: 3, nombre: 'Cable', descripcion: 'Cable eléctrico', stock: 5 },
@@ -130,7 +139,7 @@ describe('Repuestos y permisos de órdenes', () => {
     const pagina = fixture.componentInstance;
     await vi.waitFor(() => expect(pagina['ocupado']()).toBe(false));
     await pagina['consultar'](42);
-    pagina['nuevoEstado'] = 'ASIGNADA'; pagina['tecnicoId'] = ' tecnico-01 ';
+    pagina['nuevoEstado'] = 'ASIGNADA'; pagina['tecnicoId'] = ' tecnico-01 '; pagina['emailTecnico'] = 'tecnico@example.org';
     fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
     return { fixture, pagina, root: fixture.nativeElement as HTMLElement };
   }
@@ -144,7 +153,7 @@ describe('Repuestos y permisos de órdenes', () => {
     api.listarRepuestos.mockReturnValue(of(catalogo.map(r => ({ ...r, stock: r.id === 3 ? 3 : r.stock }))));
     await pagina['cambiarEstado'](); fixture.detectChanges();
     expect(api.cambiarEstadoOrden).toHaveBeenCalledWith(42, {
-      status: 'ASIGNADA', tecnicoId: 'tecnico-01', repuestos: [{ repuestoId: 3, cantidad: 2 }, { repuestoId: 7, cantidad: 1 }],
+      status: 'ASIGNADA', tecnicoId: 'tecnico-01', emailTecnico: 'tecnico@example.org', repuestos: [{ repuestoId: 3, cantidad: 2 }, { repuestoId: 7, cantidad: 1 }],
     });
     expect(pagina['ordenes']()[0].estado).toBe('ASIGNADA');
     expect(pagina['seleccionada']()?.estado).toBe('ASIGNADA');
@@ -158,7 +167,7 @@ describe('Repuestos y permisos de órdenes', () => {
     const { pagina } = await preparar();
     pagina['cantidades'] = { 3: 0, 7: 0 };
     await pagina['cambiarEstado']();
-    expect(api.cambiarEstadoOrden).toHaveBeenCalledWith(42, { status: 'ASIGNADA', tecnicoId: 'tecnico-01', repuestos: [] });
+    expect(api.cambiarEstadoOrden).toHaveBeenCalledWith(42, { status: 'ASIGNADA', tecnicoId: 'tecnico-01', emailTecnico: 'tecnico@example.org', repuestos: [] });
   });
 
   it.each([6, -1, 1.5, null, NaN])('rechaza cantidad inválida %s antes del request', async cantidad => {
@@ -232,7 +241,7 @@ describe('Repuestos y permisos de órdenes', () => {
     api.listarRepuestos.mockReturnValue(of(repuestos));
     const { pagina } = await preparar();
     await pagina['cambiarEstado']();
-    expect(api.cambiarEstadoOrden).toHaveBeenCalledWith(42, { status: 'ASIGNADA', tecnicoId: 'tecnico-01', repuestos: [] });
+    expect(api.cambiarEstadoOrden).toHaveBeenCalledWith(42, { status: 'ASIGNADA', tecnicoId: 'tecnico-01', emailTecnico: 'tecnico@example.org', repuestos: [] });
   });
 
   it('conserva asignación exitosa aunque falle la recarga de stock', async () => {
@@ -256,13 +265,16 @@ describe('Repuestos y permisos de órdenes', () => {
     expect(api.listarRepuestos).toHaveBeenCalledTimes(1);
   });
 
-  it('advierte sin correo y envía el correo del técnico cuando se informa', async () => {
+  it('exige correo del técnico y lo envía cuando se informa', async () => {
     const { pagina, root } = await preparar();
-    expect(root.textContent).toContain('no se enviará el ticket de despacho');
+    expect((root.querySelector('#email-tecnico') as HTMLInputElement).required).toBe(true);
+    pagina['emailTecnico'] = '';
+    await pagina['cambiarEstado']();
+    expect(api.cambiarEstadoOrden).not.toHaveBeenCalled();
     pagina['emailTecnico'] = 'tecnico@example.org';
     await pagina['cambiarEstado']();
     expect(api.cambiarEstadoOrden).toHaveBeenCalledWith(42, {
-      status: 'ASIGNADA', tecnicoId: 'tecnico-01', repuestos: [], emailTecnico: 'tecnico@example.org',
+      status: 'ASIGNADA', tecnicoId: 'tecnico-01', emailTecnico: 'tecnico@example.org', repuestos: [],
     });
   });
 
@@ -272,10 +284,10 @@ describe('Repuestos y permisos de órdenes', () => {
     const { pagina, root } = await preparar();
     expect(root.querySelector('#contacto-cliente')).not.toBeNull();
     expect(root.querySelector('#contacto-tecnico') === null).toBe(valor === 'Cliente');
-    pagina['contactoCliente'] = ''; pagina['contactoTecnico'] = 'nuevo@example.org';
+    pagina['contactoCliente'] = 'nuevo-cliente@example.org'; pagina['contactoTecnico'] = 'nuevo@example.org';
     await pagina['guardarContactos']();
     expect(api.actualizarContactos).toHaveBeenCalledWith(42, valor === 'Cliente'
-      ? { emailContacto: '' } : { emailContacto: '', emailTecnico: 'nuevo@example.org' });
+      ? { emailContacto: 'nuevo-cliente@example.org' } : { emailContacto: 'nuevo-cliente@example.org', emailTecnico: 'nuevo@example.org' });
     expect(api.cambiarEstadoOrden).not.toHaveBeenCalled();
     expect(pagina['mensaje']()).toContain('No se reenvían');
   });
@@ -301,7 +313,7 @@ describe('Repuestos y permisos de órdenes', () => {
     api.actualizarContactos.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 403 })));
     await pagina['guardarContactos']();
     expect(pagina['contactoCliente']).toBe('nuevo@example.org');
-    expect(pagina['seleccionada']()?.emailContacto).toBeUndefined();
+    expect(pagina['seleccionada']()?.emailContacto).toBe('cliente@example.org');
     expect(pagina['error']()).not.toBe('');
   });
 
@@ -340,7 +352,7 @@ describe('Repuestos y permisos de órdenes', () => {
     expect(api.actualizarOrden).not.toHaveBeenCalled(); expect(api.eliminarOrden).not.toHaveBeenCalled();
   });
 
-  it.each(['nuevo@example.org', '', 'cliente@example.org'])('edición carga el correo y guarda el cambio %s solo cuando corresponde', async correo => {
+  it.each(['nuevo@example.org', 'cliente@example.org'])('edición carga el correo y guarda el cambio %s solo cuando corresponde', async correo => {
     const actual = { ...orden, emailContacto: 'cliente@example.org' };
     api.consultarOrden.mockReturnValue(of(actual));
     api.actualizarOrden.mockReturnValue(of(actual));
@@ -365,13 +377,7 @@ describe('Repuestos y permisos de órdenes', () => {
     expect(pagina['seleccionada']()?.emailContacto).toBe('reciente@example.org');
   });
 
-  it.each(['invalido', 'a'.repeat(255) + '@example.org'])('rechaza correo inválido al editar: %s', async correo => {
-    const { pagina } = await preparar();
-    await pagina['editar'](42); pagina['emailContacto'] = correo;
-    await pagina['crear']();
-    expect(api.actualizarOrden).not.toHaveBeenCalled(); expect(api.actualizarContactos).not.toHaveBeenCalled();
-    expect(pagina['error']()).toContain('correo de contacto válido');
-  });
+
 
   it('fallo de PUT conserva formulario y no ejecuta PATCH', async () => {
     const { pagina } = await preparar();
@@ -393,5 +399,38 @@ describe('Repuestos y permisos de órdenes', () => {
     api.actualizarContactos.mockReturnValue(of({ ...orden, emailContacto: 'nuevo@example.org' }));
     await pagina['crear']();
     expect(pagina['editandoId']()).toBeNull(); expect(pagina['mensaje']()).toContain('actualizada correctamente');
+  });
+
+  it.each(['', '   '])('no permite borrar contactos de una orden con técnico: %s', async valor => {
+    api.consultarOrden.mockReturnValue(of({ ...orden, tecnicoId: 't', emailTecnico: 'tecnico@example.org' }));
+    const { pagina } = await preparar();
+    pagina['contactoCliente'] = valor;
+    await pagina['guardarContactos']();
+    expect(api.actualizarContactos).not.toHaveBeenCalled();
+    pagina['contactoCliente'] = 'cliente@example.org'; pagina['contactoTecnico'] = valor;
+    await pagina['guardarContactos']();
+    expect(api.actualizarContactos).not.toHaveBeenCalled();
+  });
+
+  it('consulta una orden antigua sin correo y permite completarlo en edición', async () => {
+    const antigua = { ...orden, emailContacto: null };
+    api.consultarOrden.mockReturnValue(of(antigua)); api.actualizarOrden.mockReturnValue(of(antigua));
+    api.actualizarContactos.mockReturnValue(of({ ...orden, emailContacto: 'completado@example.org' }));
+    const { pagina, root, fixture } = await preparar();
+    expect(root.textContent).toContain('No registrado');
+    await pagina['editar'](42); fixture.detectChanges(); await fixture.whenStable();
+    expect(pagina['emailContacto']).toBe('');
+    await pagina['crear'](); expect(api.actualizarOrden).not.toHaveBeenCalled();
+    pagina['emailContacto'] = 'completado@example.org'; await pagina['crear']();
+    expect(api.actualizarContactos).toHaveBeenCalledWith(42, { emailContacto: 'completado@example.org' });
+    expect(api.cambiarEstadoOrden).not.toHaveBeenCalled();
+  });
+
+  it.each(['', '   ', 'invalido', 'a'.repeat(255) + '@example.org'])('rechaza correo inválido al editar: %s', async correo => {
+    const { pagina } = await preparar();
+    await pagina['editar'](42); pagina['emailContacto'] = correo;
+    await pagina['crear']();
+    expect(api.actualizarOrden).not.toHaveBeenCalled(); expect(api.actualizarContactos).not.toHaveBeenCalled();
+    expect(pagina['error']()).toContain('correo de contacto válido');
   });
 });

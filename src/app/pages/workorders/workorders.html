@@ -30,8 +30,8 @@
           <textarea id="descripcion" name="descripcion" [(ngModel)]="descripcion" required maxlength="1000" rows="3"></textarea>
           <label for="direccion">Dirección</label>
           <input id="direccion" name="direccion" [(ngModel)]="direccion" required maxlength="300" />
-          <label for="email-contacto">Correo de contacto del cliente (opcional)</label>
-          <input id="email-contacto" name="emailContacto" type="email" email maxlength="254" [(ngModel)]="emailContacto" #correoNuevo="ngModel" />
+          <label for="email-contacto">Correo de contacto del cliente</label>
+          <input id="email-contacto" name="emailContacto" type="email" email required maxlength="254" [(ngModel)]="emailContacto" #correoNuevo="ngModel" />
           @if (correoNuevo.invalid && correoNuevo.dirty) {
             <p class="mensaje-error" role="alert">Ingresa un correo válido de hasta 254 caracteres.</p>
           }
@@ -85,13 +85,13 @@
         @if (puedeGestionarEstado() || esPropia(orden)) {
           <form #formContactos="ngForm" (ngSubmit)="guardarContactos()" aria-labelledby="titulo-contactos">
             <h3 id="titulo-contactos">Corregir contactos</h3>
-            <p>Deja el campo vacío para borrar el correo. Esta corrección no reenvía mensajes anteriores.</p>
+            <p>Reemplaza los correos por direcciones válidas. Esta corrección no reenvía mensajes anteriores.</p>
             <fieldset [disabled]="ocupado()">
               <label for="contacto-cliente">Correo de contacto</label>
-              <input id="contacto-cliente" name="contactoCliente" type="email" email maxlength="254" [(ngModel)]="contactoCliente" />
+              <input id="contacto-cliente" name="contactoCliente" type="email" email required maxlength="254" [(ngModel)]="contactoCliente" />
               @if (puedeGestionarEstado()) {
                 <label for="contacto-tecnico">Correo del técnico</label>
-                <input id="contacto-tecnico" name="contactoTecnico" type="email" email maxlength="254" [(ngModel)]="contactoTecnico" />
+                <input id="contacto-tecnico" name="contactoTecnico" type="email" email [required]="!!orden.tecnicoId" maxlength="254" [(ngModel)]="contactoTecnico" />
               }
               @if (formContactos.invalid && formContactos.dirty) {
                 <p class="mensaje-error" role="alert">Ingresa correos válidos de hasta 254 caracteres.</p>
@@ -124,13 +124,10 @@
               @if (nuevoEstado === 'ASIGNADA') {
                 <label for="tecnico">Identificador del técnico</label>
                 <input id="tecnico" name="tecnico" [(ngModel)]="tecnicoId" required maxlength="100" />
-                <label for="email-tecnico">Correo del técnico (opcional)</label>
-                <input id="email-tecnico" name="emailTecnico" type="email" email maxlength="254" [(ngModel)]="emailTecnico" #correoAsignado="ngModel" />
+                <label for="email-tecnico">Correo del técnico</label>
+                <input id="email-tecnico" name="emailTecnico" type="email" email required maxlength="254" [(ngModel)]="emailTecnico" #correoAsignado="ngModel" />
                 @if (correoAsignado.invalid && correoAsignado.dirty) {
                   <p class="mensaje-error" role="alert">Ingresa un correo válido de hasta 254 caracteres.</p>
-                }
-                @if (!emailTecnico.trim()) {
-                  <p class="advertencia" role="status">Sin correo del técnico, la orden se asignará pero no se enviará el ticket de despacho.</p>
                 }
                 <section class="repuestos" aria-labelledby="titulo-repuestos">
                   <h3 id="titulo-repuestos">Repuestos para la asignación</h3>
