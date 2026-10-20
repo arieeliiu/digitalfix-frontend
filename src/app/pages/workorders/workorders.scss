@@ -325,3 +325,24 @@ h1 {
   .modal-orden__contenido { padding: 18px; }
   .acciones-header { width: 100%; justify-content: flex-end; }
 }
+
+// Detalle accesible: la información y los estados permanecen dentro del diálogo.
+.modal-detalle {
+  width: min(760px, calc(100% - 32px));
+
+  .modal-detalle__encabezado {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding-bottom: 12px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid #dbe3ec;
+
+    h2 { margin: 0; }
+  }
+
+  h3 { margin: 22px 0 12px; }
+  .contacto { overflow-wrap: anywhere; }
+  fieldset { margin-top: 12px; }
+}

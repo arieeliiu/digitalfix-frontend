@@ -64,10 +64,13 @@ describe('Formulario de órdenes reales', () => {
     expect(api.crearOrden).toHaveBeenCalledWith({ servicioId: 1, descripcion: 'Revisión', direccion: 'Calle 123', emailContacto: 'cliente@example.org' });
     expect(root.textContent).toContain('Orden #42 creada correctamente.');
     expect((root.querySelector('dialog') as HTMLDialogElement).open).toBe(false);
+    expect((root.querySelectorAll('dialog')[1] as HTMLDialogElement).open).toBe(false);
+    expect(fixture.componentInstance['seleccionada']()).toBeNull();
     expect(root.textContent).toContain('CREADA');
     const consultar = Array.from(root.querySelectorAll('button')).find(b => b.textContent?.trim() === 'Consultar')!;
     consultar.click(); await fixture.whenStable(); fixture.detectChanges();
     expect(api.consultarOrden).toHaveBeenCalledWith(42);
+    expect((root.querySelectorAll('dialog')[1] as HTMLDialogElement).open).toBe(true);
     expect(root.textContent).toContain('Dirección: Calle 123');
   });
 
@@ -316,43 +319,21 @@ describe('Repuestos y permisos de órdenes', () => {
     });
   });
 
-  it.each(['Admin', 'Operador', 'Cliente'])('%s corrige contactos de una orden cerrada sin transición', async valor => {
-    rol = valor; oid = 'cliente';
-    api.consultarOrden.mockReturnValue(of({ ...orden, estado: 'CERRADA', emailContacto: 'anterior@example.org', emailTecnico: 'tecnico@example.org' }));
-    const { pagina, root } = await preparar();
-    expect(root.querySelector('#contacto-cliente')).not.toBeNull();
-    expect(root.querySelector('#contacto-tecnico') === null).toBe(valor === 'Cliente');
-    pagina['contactoCliente'] = 'nuevo-cliente@example.org'; pagina['contactoTecnico'] = 'nuevo@example.org';
-    await pagina['guardarContactos']();
-    expect(api.actualizarContactos).toHaveBeenCalledWith(42, valor === 'Cliente'
-      ? { emailContacto: 'nuevo-cliente@example.org' } : { emailContacto: 'nuevo-cliente@example.org', emailTecnico: 'nuevo@example.org' });
-    expect(api.cambiarEstadoOrden).not.toHaveBeenCalled();
-    expect(pagina['mensaje']()).toContain('No se reenvían');
-  });
-
-  it('oculta contactos editables de un cliente ajeno y bloquea la acción', async () => {
-    rol = 'Cliente'; oid = 'ajeno';
-    const { pagina, root } = await preparar();
+  it('Consultar abre un modal y no ofrece editar el correo del cliente allí', async () => {
+    const { pagina, fixture, root } = await preparar();
+    const dialogo = root.querySelectorAll('dialog')[1] as HTMLDialogElement;
+    expect(dialogo.open).toBe(true);
+    expect(root.querySelector('#detalle-orden')?.textContent).toContain('#42');
     expect(root.querySelector('#contacto-cliente')).toBeNull();
-    await pagina['guardarContactos']();
-    expect(api.actualizarContactos).not.toHaveBeenCalled();
-  });
-
-  it.each(['no-es-correo', 'a'.repeat(255) + '@example.org'])('rechaza correo inválido en asignación y contactos: %s', async correo => {
-    const { pagina } = await preparar();
-    pagina['emailTecnico'] = correo; pagina['contactoCliente'] = correo;
-    await pagina['cambiarEstado'](); await pagina['guardarContactos']();
-    expect(api.cambiarEstadoOrden).not.toHaveBeenCalled(); expect(api.actualizarContactos).not.toHaveBeenCalled();
-  });
-
-  it('conserva el formulario de contactos si el servidor rechaza', async () => {
-    const { pagina } = await preparar();
-    pagina['contactoCliente'] = 'nuevo@example.org';
-    api.actualizarContactos.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 403 })));
-    await pagina['guardarContactos']();
-    expect(pagina['contactoCliente']).toBe('nuevo@example.org');
-    expect(pagina['seleccionada']()?.emailContacto).toBe('cliente@example.org');
-    expect(pagina['error']()).not.toBe('');
+    expect(root.querySelector('#contacto-tecnico')).toBeNull();
+    expect(root.querySelector('#email-contacto')).not.toBeNull(); // Existe solo en el modal de Editar.
+    expect(root.querySelector('#email-tecnico')).not.toBeNull(); // Requerido para asignar.
+    const cancelar = new Event('cancel', { cancelable: true });
+    dialogo.dispatchEvent(cancelar); fixture.detectChanges();
+    expect(cancelar.defaultPrevented).toBe(true);
+    expect(dialogo.open).toBe(false);
+    expect(pagina['seleccionada']()).toBeNull();
+    expect(root.querySelector('tbody tr')?.textContent).toContain('#42');
   });
 
   it('Admin ve las acciones y edita una orden ajena conservando el propietario', async () => {
@@ -401,7 +382,9 @@ describe('Repuestos y permisos de órdenes', () => {
     pagina['emailContacto'] = correo; await pagina['crear']();
     if (correo === 'cliente@example.org') expect(api.actualizarContactos).not.toHaveBeenCalled();
     else expect(api.actualizarContactos).toHaveBeenCalledWith(42, { emailContacto: correo });
-    expect(pagina['seleccionada']()?.emailContacto).toBe(correo || null);
+    expect(pagina['ordenes']()[0].emailContacto).toBe(correo || null);
+    expect(pagina['seleccionada']()).toBeNull();
+    expect((root.querySelectorAll('dialog')[1] as HTMLDialogElement).open).toBe(false);
     expect(pagina['mensaje']()).toContain('actualizada correctamente');
     expect(api.cambiarEstadoOrden).not.toHaveBeenCalled();
   });
@@ -412,7 +395,7 @@ describe('Repuestos y permisos de órdenes', () => {
     const { pagina } = await preparar();
     await pagina['editar'](42); await pagina['crear']();
     expect(api.actualizarContactos).not.toHaveBeenCalled();
-    expect(pagina['seleccionada']()?.emailContacto).toBe('reciente@example.org');
+    expect(pagina['ordenes']()[0].emailContacto).toBe('reciente@example.org');
   });
 
 
@@ -437,17 +420,6 @@ describe('Repuestos y permisos de órdenes', () => {
     api.actualizarContactos.mockReturnValue(of({ ...orden, emailContacto: 'nuevo@example.org' }));
     await pagina['crear']();
     expect(pagina['editandoId']()).toBeNull(); expect(pagina['mensaje']()).toContain('actualizada correctamente');
-  });
-
-  it.each(['', '   '])('no permite borrar contactos de una orden con técnico: %s', async valor => {
-    api.consultarOrden.mockReturnValue(of({ ...orden, tecnicoId: 't', emailTecnico: 'tecnico@example.org' }));
-    const { pagina } = await preparar();
-    pagina['contactoCliente'] = valor;
-    await pagina['guardarContactos']();
-    expect(api.actualizarContactos).not.toHaveBeenCalled();
-    pagina['contactoCliente'] = 'cliente@example.org'; pagina['contactoTecnico'] = valor;
-    await pagina['guardarContactos']();
-    expect(api.actualizarContactos).not.toHaveBeenCalled();
   });
 
   it('consulta una orden antigua sin correo y permite completarlo en edición', async () => {

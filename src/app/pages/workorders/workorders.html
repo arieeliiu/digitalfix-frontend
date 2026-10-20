@@ -7,7 +7,7 @@
     </div>
   </header>
   @if (cargando()) { <p role="status">Cargando servicios y órdenes...</p> }
-  @if (error() && !modalOrdenAbierto()) { <p class="mensaje-error" role="alert">{{ error() }}</p> }
+  @if (error() && !modalOrdenAbierto() && !modalDetalleAbierto()) { <p class="mensaje-error" role="alert">{{ error() }}</p> }
   @if (mensaje()) { <p role="status">{{ mensaje() }}</p> }
   @if (cargandoRepuestos()) { <p role="status">Cargando repuestos...</p> }
   @if (errorRepuestos()) {
@@ -80,32 +80,26 @@
       </section>
     }
     @if (consultando()) { <p role="status">Consultando orden...</p> }
-    @if (seleccionada(); as orden) {
-      <section class="formulario-orden" aria-labelledby="detalle-orden">
-        <h2 id="detalle-orden">Orden #{{ orden.id }}</h2>
+    <dialog #modalDetalle class="modal-orden modal-detalle" aria-modal="true" aria-labelledby="detalle-orden" (cancel)="alCancelarDetalle($event)">
+      @if (seleccionada(); as orden) {
+      <div class="modal-orden__contenido">
+        <div class="modal-detalle__encabezado">
+          <h2 id="detalle-orden">Orden #{{ orden.id }}</h2>
+          <button type="button" class="btn btn-secundario" (click)="cerrarDetalle()" [disabled]="guardando()" aria-label="Cerrar detalle de orden">Cerrar</button>
+        </div>
+        @if (error()) { <p class="mensaje-error" role="alert">{{ error() }}</p> }
+        @if (mensaje()) { <p role="status">{{ mensaje() }}</p> }
+        @if (errorRepuestos()) {
+          <div class="mensaje-error" role="alert">
+            <p>No se pudieron cargar los repuestos. {{ errorRepuestos() }}</p>
+            <button type="button" class="btn btn-secundario" (click)="cargarRepuestos()" [disabled]="ocupado()">Reintentar repuestos</button>
+          </div>
+        }
         <p>{{ orden.descripcion }}</p><p>Dirección: {{ orden.direccion }}</p>
         <p>Estado: {{ orden.estado }}</p><p>Servicio: #{{ orden.servicioId }}</p>
         @if (orden.tecnicoId) { <p>Técnico: {{ orden.tecnicoId }}</p> }
         <p class="contacto">Correo de contacto: {{ orden.emailContacto || 'No registrado' }}</p>
         <p class="contacto">Correo del técnico: {{ orden.emailTecnico || 'No registrado' }}</p>
-        @if (puedeGestionarEstado() || esPropia(orden)) {
-          <form #formContactos="ngForm" (ngSubmit)="guardarContactos()" aria-labelledby="titulo-contactos">
-            <h3 id="titulo-contactos">Corregir contactos</h3>
-            <p>Reemplaza los correos por direcciones válidas. Esta corrección no reenvía mensajes anteriores.</p>
-            <fieldset [disabled]="ocupado()">
-              <label for="contacto-cliente">Correo de contacto</label>
-              <input id="contacto-cliente" name="contactoCliente" type="email" email required maxlength="254" [(ngModel)]="contactoCliente" />
-              @if (puedeGestionarEstado()) {
-                <label for="contacto-tecnico">Correo del técnico</label>
-                <input id="contacto-tecnico" name="contactoTecnico" type="email" email [required]="!!orden.tecnicoId" maxlength="254" [(ngModel)]="contactoTecnico" />
-              }
-              @if (formContactos.invalid && formContactos.dirty) {
-                <p class="mensaje-error" role="alert">Ingresa correos válidos de hasta 254 caracteres.</p>
-              }
-              <button type="submit" class="btn btn-secundario" [disabled]="formContactos.invalid">Guardar contactos</button>
-            </fieldset>
-          </form>
-        }
         @if (orden.repuestos?.length) {
           <h3>Repuestos utilizados</h3>
           <ul>
@@ -128,6 +122,7 @@
                 }
               </select>
               @if (nuevoEstado === 'ASIGNADA') {
+                <h3>Asignar técnico</h3>
                 <label for="tecnico">Identificador del técnico</label>
                 <input id="tecnico" name="tecnico" [(ngModel)]="tecnicoId" required maxlength="100" />
                 <label for="email-tecnico">Correo del técnico</label>
@@ -162,11 +157,15 @@
                   }
                 </section>
               }
-              <button type="submit" class="btn btn-primario" [disabled]="formEstado.invalid || !nuevoEstado || (nuevoEstado === 'ASIGNADA' && !tecnicoId.trim())">Cambiar estado</button>
+              <button type="submit" class="btn btn-primario" [disabled]="formEstado.invalid || !nuevoEstado || (nuevoEstado === 'ASIGNADA' && !tecnicoId.trim())">{{ nuevoEstado === 'ASIGNADA' ? 'Asignar técnico' : 'Cambiar estado' }}</button>
             </fieldset>
           </form>
         }
-      </section>
-    }
+        <div class="acciones-modal">
+          <button type="button" class="btn btn-secundario" (click)="cerrarDetalle()" [disabled]="guardando()">Cerrar detalle</button>
+        </div>
+      </div>
+      }
+    </dialog>
   }
 </main>

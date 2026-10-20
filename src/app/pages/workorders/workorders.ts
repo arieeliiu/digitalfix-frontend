@@ -15,6 +15,7 @@ export class PaginaWorkOrders implements OnInit {
   private readonly api = inject(ServicioApi);
   private readonly auth = inject(ServicioAutenticacion);
   @ViewChild('modalOrden') private modalOrden?: ElementRef<HTMLDialogElement>;
+  @ViewChild('modalDetalle') private modalDetalle?: ElementRef<HTMLDialogElement>;
   protected readonly servicios = signal<ServicioCatalogo[]>([]);
   protected readonly repuestos = signal<RepuestoCatalogo[]>([]);
   protected readonly cargandoRepuestos = signal(false);
@@ -27,6 +28,7 @@ export class PaginaWorkOrders implements OnInit {
   protected readonly consultando = signal(false);
   protected readonly editandoId = signal<number | null>(null);
   protected readonly modalOrdenAbierto = signal(false);
+  protected readonly modalDetalleAbierto = signal(false);
   protected readonly pendienteEliminar = signal<OrdenTrabajo | null>(null);
   protected readonly ocupado = computed(() => this.cargando() || this.guardando() || this.consultando() || this.cargandoRepuestos());
   protected readonly puedeGestionarEstado = computed(() => this.auth.tieneRol('Admin') || this.auth.tieneRol('Operador'));
@@ -38,8 +40,6 @@ export class PaginaWorkOrders implements OnInit {
   protected emailContacto = '';
   private emailContactoOriginal = '';
   protected emailTecnico = '';
-  protected contactoCliente = '';
-  protected contactoTecnico = '';
   protected nuevoEstado: EstadoOrden | '' = '';
   protected tecnicoId = '';
   protected readonly estadosDisponibles = computed<EstadoOrden[]>(() => {
@@ -55,7 +55,8 @@ export class PaginaWorkOrders implements OnInit {
 
   protected async cargar(): Promise<void> {
     if (this.ocupado()) return;
-    this.cargando.set(true); this.error.set(''); this.seleccionada.set(null);
+    this.cerrarDetalle();
+    this.cargando.set(true); this.error.set('');
     this.cantidades = {};
     this.pendienteEliminar.set(null); this.cancelarEdicion();
     try {
@@ -96,6 +97,7 @@ export class PaginaWorkOrders implements OnInit {
 
   protected abrirNuevaOrden(): void {
     if (this.ocupado()) return;
+    this.cerrarDetalle();
     this.cancelarEdicion();
     this.error.set('');
     this.mensaje.set('');
@@ -113,6 +115,28 @@ export class PaginaWorkOrders implements OnInit {
   protected alCancelarModal(evento: Event): void {
     evento.preventDefault();
     if (!this.ocupado()) this.cancelarEdicion();
+  }
+
+  // El detalle solo se abre al consultar; guardar nunca lo despliega.
+  private abrirDetalle(): void {
+    const dialogo = this.modalDetalle?.nativeElement;
+    if (!dialogo || dialogo.open) return;
+    dialogo.showModal();
+    this.modalDetalleAbierto.set(true);
+  }
+
+  protected cerrarDetalle(): void {
+    if (this.guardando()) return;
+    if (this.modalDetalle?.nativeElement.open) this.modalDetalle.nativeElement.close();
+    this.modalDetalleAbierto.set(false);
+    this.seleccionada.set(null);
+    this.nuevoEstado = '';
+    this.cantidades = {};
+  }
+
+  protected alCancelarDetalle(evento: Event): void {
+    evento.preventDefault();
+    this.cerrarDetalle();
   }
 
   protected async crear(): Promise<void> {
@@ -134,7 +158,6 @@ export class PaginaWorkOrders implements OnInit {
       else this.reemplazarOrden(orden);
       if (id !== null && this.emailContacto.trim() !== this.emailContactoOriginal) {
         // PUT y PATCH son independientes: conservar la edición si falla el segundo.
-        this.mostrarDetalle(orden);
         try {
           orden = await firstValueFrom(this.api.actualizarContactos(id, { emailContacto: this.emailContacto.trim() }));
           this.reemplazarOrden(orden);
@@ -143,7 +166,6 @@ export class PaginaWorkOrders implements OnInit {
           return;
         }
       }
-      this.mostrarDetalle(orden);
       this.mensaje.set(`Orden #${orden.id} ${id === null ? 'creada' : 'actualizada'} correctamente.`);
       this.cancelarEdicion();
     } catch (error) { this.error.set(mensajeErrorApi(error)); }
@@ -152,10 +174,12 @@ export class PaginaWorkOrders implements OnInit {
 
   protected async consultar(id: number): Promise<void> {
     if (this.ocupado()) return;
-    this.consultando.set(true); this.error.set(''); this.seleccionada.set(null);
+    this.cerrarDetalle();
+    this.consultando.set(true); this.error.set(''); this.mensaje.set('');
     try {
       const orden = await firstValueFrom(this.api.consultarOrden(id));
       this.mostrarDetalle(orden); this.reemplazarOrden(orden);
+      this.abrirDetalle();
     }
     catch (error) { this.error.set(mensajeErrorApi(error)); }
     finally { this.consultando.set(false); }
@@ -163,10 +187,10 @@ export class PaginaWorkOrders implements OnInit {
 
   protected async editar(id: number): Promise<void> {
     if (this.ocupado()) return;
+    this.cerrarDetalle();
     this.consultando.set(true); this.error.set(''); this.mensaje.set('');
     try {
       const orden = await firstValueFrom(this.api.consultarOrden(id));
-      this.mostrarDetalle(orden);
       this.reemplazarOrden(orden);
       if (!this.puedeEditar(orden)) {
         this.error.set('Solo puedes editar órdenes en estado CREADA si eres su propietario o Admin.');
@@ -254,28 +278,6 @@ export class PaginaWorkOrders implements OnInit {
       && new FormControl(valor.trim(), [Validators.email, Validators.maxLength(254)]).valid;
   }
 
-  protected async guardarContactos(): Promise<void> {
-    const orden = this.seleccionada();
-    if (!orden || this.ocupado() || (!this.puedeGestionarEstado() && !this.esPropia(orden))) return;
-    if (!this.correoValido(this.contactoCliente, true)
-        || (this.puedeGestionarEstado() && !this.correoValido(this.contactoTecnico, !!orden.tecnicoId))) {
-      this.error.set('Ingresa correos válidos de hasta 254 caracteres.'); return;
-    }
-    this.guardando.set(true); this.error.set(''); this.mensaje.set('');
-    try {
-      // Enviar solo cambios evita sobrescribir contactos que el usuario no editó.
-      const contactos = {
-        ...(this.contactoCliente.trim() !== (orden.emailContacto ?? '') ? { emailContacto: this.contactoCliente.trim() } : {}),
-        ...(this.puedeGestionarEstado() && this.contactoTecnico.trim() !== (orden.emailTecnico ?? '')
-          ? { emailTecnico: this.contactoTecnico.trim() } : {}),
-      };
-      const actualizada = await firstValueFrom(this.api.actualizarContactos(orden.id, contactos));
-      this.reemplazarOrden(actualizada); this.mostrarDetalle(actualizada);
-      this.mensaje.set('Contactos actualizados. No se reenvían mensajes anteriores automáticamente.');
-    } catch (error) { this.error.set(mensajeErrorApi(error)); }
-    finally { this.guardando.set(false); }
-  }
-
   private reemplazarOrden(orden: OrdenTrabajo): void {
     this.ordenes.update(ordenes => ordenes.map(o => o.id === orden.id ? orden : o));
   }
@@ -284,6 +286,5 @@ export class PaginaWorkOrders implements OnInit {
     this.cantidades = {};
     this.seleccionada.set(orden); this.nuevoEstado = ''; this.tecnicoId = orden.tecnicoId ?? '';
     this.emailTecnico = orden.emailTecnico ?? '';
-    this.contactoCliente = orden.emailContacto ?? ''; this.contactoTecnico = orden.emailTecnico ?? '';
   }
 }
