@@ -1,10 +1,13 @@
 <main class="pagina">
   <header class="encabezado-pagina">
     <div><a routerLink="/dashboard" class="volver">← Dashboard</a><h1>Órdenes de trabajo</h1></div>
-    <button type="button" class="btn btn-secundario" (click)="cargar()" [disabled]="ocupado()">Actualizar</button>
+    <div class="acciones-header">
+      <button type="button" class="btn btn-secundario" (click)="cargar()" [disabled]="ocupado()">Actualizar</button>
+      <button id="abrir-nueva-orden" type="button" class="btn btn-primario" (click)="abrirNuevaOrden()" [disabled]="ocupado() || servicios().length === 0">+ Nueva orden</button>
+    </div>
   </header>
   @if (cargando()) { <p role="status">Cargando servicios y órdenes...</p> }
-  @if (error()) { <p class="mensaje-error" role="alert">{{ error() }}</p> }
+  @if (error() && !modalOrdenAbierto()) { <p class="mensaje-error" role="alert">{{ error() }}</p> }
   @if (mensaje()) { <p role="status">{{ mensaje() }}</p> }
   @if (cargandoRepuestos()) { <p role="status">Cargando repuestos...</p> }
   @if (errorRepuestos()) {
@@ -14,9 +17,11 @@
     </div>
   }
   @if (!cargando()) {
-    <section class="formulario-orden" aria-labelledby="nueva-orden">
-      <h2 id="nueva-orden">{{ editandoId() === null ? 'Nueva orden' : 'Editar orden #' + editandoId() }}</h2>
+    <dialog #modalOrden class="modal-orden" aria-modal="true" aria-labelledby="titulo-modal-orden" (cancel)="alCancelarModal($event)">
+      <div class="modal-orden__contenido">
+      <h2 id="titulo-modal-orden">{{ editandoId() === null ? 'Nueva orden' : 'Editar orden #' + editandoId() }}</h2>
       @if (servicios().length === 0) { <p>No hay servicios disponibles para crear una orden.</p> }
+      @if (error()) { <p class="mensaje-error" role="alert">{{ error() }}</p> }
       <form #form="ngForm" (ngSubmit)="crear()">
         <fieldset [disabled]="ocupado() || servicios().length === 0">
           <label for="servicio">Servicio</label>
@@ -35,15 +40,16 @@
           @if (correoNuevo.invalid && correoNuevo.dirty) {
             <p class="mensaje-error" role="alert">Ingresa un correo válido de hasta 254 caracteres.</p>
           }
-          <button type="submit" class="btn btn-primario" [disabled]="form.invalid || !descripcion.trim() || !direccion.trim() || consultando()">
-            {{ guardando() ? 'Guardando...' : editandoId() === null ? 'Crear orden' : 'Guardar cambios' }}
-          </button>
+          <div class="acciones-modal">
+            <button type="button" class="btn btn-secundario" (click)="cancelarEdicion()" [disabled]="ocupado()">Cancelar</button>
+            <button type="submit" class="btn btn-primario" [disabled]="form.invalid || !descripcion.trim() || !direccion.trim() || consultando()">
+              {{ guardando() ? 'Guardando...' : editandoId() === null ? 'Crear orden' : 'Guardar cambios' }}
+            </button>
+          </div>
         </fieldset>
-        @if (editandoId() !== null) {
-          <button type="button" class="btn btn-secundario" (click)="cancelarEdicion()" [disabled]="ocupado()">Cancelar edición</button>
-        }
       </form>
-    </section>
+      </div>
+    </dialog>
     <h2>Órdenes registradas</h2>
     @if (ordenes().length === 0 && !error()) { <p>No hay órdenes registradas.</p> }
     @if (ordenes().length > 0) {
