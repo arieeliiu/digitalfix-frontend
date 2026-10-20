@@ -28,15 +28,14 @@ export class PaginaWorkOrders implements OnInit {
   protected readonly consultando = signal(false);
   protected readonly editandoId = signal<number | null>(null);
   protected readonly editandoAsignacion = signal(false);
-  protected readonly repuestosEdicion = computed(() => {
+  protected repuestosEdicion(): RepuestoCatalogo[] {
     const disponibles = this.repuestos();
     const antiguos = this.repuestosOriginales;
     return [...disponibles, ...antiguos.filter(x => !disponibles.some(r => r.id === x.repuestoId))
       .map(x => ({ id: x.repuestoId, nombre: `Repuesto #${x.repuestoId}`, descripcion: null, stock: 0 }))];
-  });
+  }
   protected cantidadesEdicion: Record<number, number | null> = {};
   private repuestosOriginales: RepuestoOrden[] = [];
-  private readonly editarSinStock = signal(false);
   protected readonly modalOrdenAbierto = signal(false);
   protected readonly modalDetalleAbierto = signal(false);
   protected readonly pendienteEliminar = signal<OrdenTrabajo | null>(null);
@@ -182,7 +181,7 @@ export class PaginaWorkOrders implements OnInit {
     }));
     for (const r of lista) {
       const max = (this.repuestos().find(x => x.id === r.repuestoId)?.stock ?? 0) + this.cantidadOriginal(r.repuestoId);
-      if (!Number.isInteger(r.cantidad) || r.cantidad < 0 || r.cantidad > max) {
+      if (typeof r.cantidad !== 'number' || !Number.isInteger(r.cantidad) || r.cantidad < 0 || r.cantidad > max) {
         this.error.set('Revisa las cantidades de repuestos y su stock disponible.'); return;
       }
     }
