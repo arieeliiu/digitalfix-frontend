@@ -19,9 +19,26 @@
   @if (!cargando()) {
     <dialog #modalOrden class="modal-orden" aria-modal="true" aria-labelledby="titulo-modal-orden" (cancel)="alCancelarModal($event)">
       <div class="modal-orden__contenido">
-      <h2 id="titulo-modal-orden">{{ editandoId() === null ? 'Nueva orden' : 'Editar orden #' + editandoId() }}</h2>
-      @if (servicios().length === 0) { <p>No hay servicios disponibles para crear una orden.</p> }
+      <h2 id="titulo-modal-orden">{{ editandoId() === null ? 'Nueva orden' : editandoAsignacion() ? 'Editar asignación #' + editandoId() : 'Editar orden #' + editandoId() }}</h2>
       @if (error()) { <p class="mensaje-error" role="alert">{{ error() }}</p> }
+      @if (editandoAsignacion()) {
+        <form #formTecnico="ngForm" (ngSubmit)="guardarCorreoTecnico()">
+          <fieldset [disabled]="ocupado()">
+            <p>Técnico asignado: {{ tecnicoId }}</p>
+            <label for="editar-email-tecnico">Correo del técnico</label>
+            <input id="editar-email-tecnico" name="editarEmailTecnico" type="email" email required maxlength="254" [(ngModel)]="emailTecnico" #correoTecnicoEditado="ngModel" />
+            @if (correoTecnicoEditado.invalid && correoTecnicoEditado.dirty) {
+              <p class="mensaje-error" role="alert">Ingresa un correo válido de hasta 254 caracteres.</p>
+            }
+            <p>La edición de repuestos requiere ajustar el inventario de Catalog y se implementará por separado.</p>
+            <div class="acciones-modal">
+              <button type="button" class="btn btn-secundario" (click)="cancelarEdicion()" [disabled]="ocupado()">Cancelar</button>
+              <button type="submit" class="btn btn-primario" [disabled]="formTecnico.invalid">{{ guardando() ? 'Guardando...' : 'Guardar correo' }}</button>
+            </div>
+          </fieldset>
+        </form>
+      } @else {
+      @if (servicios().length === 0) { <p>No hay servicios disponibles para crear una orden.</p> }
       <form #form="ngForm" (ngSubmit)="crear()">
         <fieldset [disabled]="ocupado() || servicios().length === 0">
           <label for="servicio">Servicio</label>
@@ -48,6 +65,7 @@
           </div>
         </fieldset>
       </form>
+      }
       </div>
     </dialog>
     <h2>Órdenes registradas</h2>
@@ -56,7 +74,7 @@
       <div class="tabla-contenedor"><table class="tabla">
         <thead><tr><th>Orden</th><th>Descripción</th><th>Estado</th><th>Fecha</th><th>Acciones</th></tr></thead>
         <tbody>@for (orden of ordenes(); track orden.id) {
-          <tr><td>#{{ orden.id }}</td><td>{{ orden.descripcion }}</td><td>{{ orden.estado }}</td><td>{{ orden.fechaCreacion | date:'dd/MM/yyyy HH:mm' }}</td>
+          <tr><td>#{{ orden.id }}</td><td>{{ orden.descripcion }}</td><td>{{ nombreEstado(orden.estado) }}</td><td>{{ orden.fechaCreacion | date:'dd/MM/yyyy HH:mm' }}</td>
             <td><div class="acciones-orden">
               <button type="button" class="btn btn-secundario" (click)="consultar(orden.id)" [disabled]="ocupado()">Consultar</button>
               @if (puedeEditar(orden)) {
@@ -96,7 +114,7 @@
           </div>
         }
         <p>{{ orden.descripcion }}</p><p>Dirección: {{ orden.direccion }}</p>
-        <p>Estado: {{ orden.estado }}</p><p>Servicio: #{{ orden.servicioId }}</p>
+        <p>Estado: {{ nombreEstado(orden.estado) }}</p><p>Servicio: #{{ orden.servicioId }}</p>
         @if (orden.tecnicoId) { <p>Técnico: {{ orden.tecnicoId }}</p> }
         <p class="contacto">Correo de contacto: {{ orden.emailContacto || 'No registrado' }}</p>
         <p class="contacto">Correo del técnico: {{ orden.emailTecnico || 'No registrado' }}</p>
@@ -118,7 +136,7 @@
               <select id="estado" name="estado" [(ngModel)]="nuevoEstado" required>
                 <option value="">Selecciona un estado</option>
                 @for (estado of estadosDisponibles(); track estado) {
-                  <option [value]="estado">{{ estado }}</option>
+                  <option [value]="estado">{{ nombreEstado(estado) }}</option>
                 }
               </select>
               @if (nuevoEstado === 'ASIGNADA') {
