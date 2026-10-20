@@ -1,4 +1,4 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, ElementRef, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { FormsModule, FormControl, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -14,6 +14,7 @@ import { mensajeErrorApi } from '../../services/error-api';
 export class PaginaWorkOrders implements OnInit {
   private readonly api = inject(ServicioApi);
   private readonly auth = inject(ServicioAutenticacion);
+  @ViewChild('modalOrden') private modalOrden?: ElementRef<HTMLDialogElement>;
   protected readonly servicios = signal<ServicioCatalogo[]>([]);
   protected readonly repuestos = signal<RepuestoCatalogo[]>([]);
   protected readonly cargandoRepuestos = signal(false);
@@ -25,6 +26,7 @@ export class PaginaWorkOrders implements OnInit {
   protected readonly guardando = signal(false);
   protected readonly consultando = signal(false);
   protected readonly editandoId = signal<number | null>(null);
+  protected readonly modalOrdenAbierto = signal(false);
   protected readonly pendienteEliminar = signal<OrdenTrabajo | null>(null);
   protected readonly ocupado = computed(() => this.cargando() || this.guardando() || this.consultando() || this.cargandoRepuestos());
   protected readonly puedeGestionarEstado = computed(() => this.auth.tieneRol('Admin') || this.auth.tieneRol('Operador'));
@@ -92,6 +94,27 @@ export class PaginaWorkOrders implements OnInit {
     return ['CREADA', 'CANCELADA'].includes(orden.estado) && (this.auth.tieneRol('Admin') || this.esPropia(orden));
   }
 
+  protected abrirNuevaOrden(): void {
+    if (this.ocupado()) return;
+    this.cancelarEdicion();
+    this.error.set('');
+    this.mensaje.set('');
+    this.abrirModal();
+  }
+
+  private abrirModal(): void {
+    const dialogo = this.modalOrden?.nativeElement;
+    if (!dialogo || dialogo.open) return;
+    dialogo.showModal();
+    this.modalOrdenAbierto.set(true);
+    dialogo.querySelector<HTMLSelectElement>('#servicio')?.focus();
+  }
+
+  protected alCancelarModal(evento: Event): void {
+    evento.preventDefault();
+    if (!this.ocupado()) this.cancelarEdicion();
+  }
+
   protected async crear(): Promise<void> {
     if (this.ocupado() || !this.servicioId || !this.descripcion.trim() || !this.direccion.trim()
         || this.descripcion.length > 1000 || this.direccion.length > 300) return;
@@ -156,11 +179,14 @@ export class PaginaWorkOrders implements OnInit {
       this.emailContacto = orden.emailContacto ?? '';
       this.emailContactoOriginal = this.emailContacto;
       this.pendienteEliminar.set(null);
+      this.abrirModal();
     } catch (error) { this.error.set(mensajeErrorApi(error)); }
     finally { this.consultando.set(false); }
   }
 
   protected cancelarEdicion(): void {
+    if (this.modalOrden?.nativeElement.open) this.modalOrden.nativeElement.close();
+    this.modalOrdenAbierto.set(false);
     this.editandoId.set(null); this.servicioId = null; this.descripcion = ''; this.direccion = '';
     this.emailContacto = '';
     this.emailContactoOriginal = '';

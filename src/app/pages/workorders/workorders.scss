@@ -291,3 +291,37 @@ h1 {
   margin-bottom: 16px;
 }
 
+
+ 
+// Modal nativo: foco contenido, Escape y retorno del foco gestionados por el navegador.
+.modal-orden {
+  width: min(600px, calc(100% - 32px));
+  max-height: 90dvh;
+  padding: 0;
+  border: 0;
+  border-radius: 14px;
+  background: #fff;
+  color: #172033;
+  box-shadow: 0 24px 64px rgba(15, 23, 42, .3);
+  overflow-y: auto;
+  box-sizing: border-box;
+
+  &::backdrop { background: rgba(15, 23, 42, .55); }
+
+  h2 { margin: 0 0 20px; }
+}
+
+.modal-orden__contenido { padding: 24px; }
+.acciones-modal {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 12px;
+}
+
+@media (max-width: 480px) {
+  .pagina { padding: 20px 14px; }
+  .modal-orden__contenido { padding: 18px; }
+  .acciones-header { width: 100%; justify-content: flex-end; }
+}

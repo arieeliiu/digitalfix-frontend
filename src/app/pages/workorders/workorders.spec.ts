@@ -7,6 +7,12 @@ import { PaginaWorkOrders } from './workorders';
 import { ServicioApi, OrdenTrabajo } from '../../services/api.service';
 import { ServicioAutenticacion } from '../../services/auth.service';
 
+// jsdom no implementa completamente la API nativa de <dialog>.
+beforeEach(() => {
+  HTMLDialogElement.prototype.showModal ??= function () { this.setAttribute('open', ''); };
+  HTMLDialogElement.prototype.close ??= function () { this.removeAttribute('open'); };
+});
+
 describe('Formulario de órdenes reales', () => {
   const orden = { id: 42, servicioId: 1, descripcion: 'Revisión', direccion: 'Calle 123', estado: 'CREADA', fechaCreacion: '2026-09-15T00:00:00Z', solicitanteId: 'cliente' };
   const api = {
@@ -35,8 +41,12 @@ describe('Formulario de órdenes reales', () => {
     const root: HTMLElement = fixture.nativeElement;
     await vi.waitFor(() => {
       fixture.detectChanges();
-      expect(root.querySelector('select')).not.toBeNull();
+      expect(root.querySelector('#abrir-nueva-orden')).not.toBeNull();
     });
+    expect((root.querySelector('dialog') as HTMLDialogElement).open).toBe(false);
+    (root.querySelector('#abrir-nueva-orden') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect((root.querySelector('dialog') as HTMLDialogElement).open).toBe(true);
     const select = root.querySelector('select')!;
     select.selectedIndex = 1; select.dispatchEvent(new Event('change'));
     for (const [id, value] of [['descripcion', 'Revisión'], ['direccion', 'Calle 123'], ['email-contacto', 'cliente@example.org']]) {
@@ -53,6 +63,7 @@ describe('Formulario de órdenes reales', () => {
     await fixture.whenStable(); fixture.detectChanges();
     expect(api.crearOrden).toHaveBeenCalledWith({ servicioId: 1, descripcion: 'Revisión', direccion: 'Calle 123', emailContacto: 'cliente@example.org' });
     expect(root.textContent).toContain('Orden #42 creada correctamente.');
+    expect((root.querySelector('dialog') as HTMLDialogElement).open).toBe(false);
     expect(root.textContent).toContain('CREADA');
     const consultar = Array.from(root.querySelectorAll('button')).find(b => b.textContent?.trim() === 'Consultar')!;
     consultar.click(); await fixture.whenStable(); fixture.detectChanges();
@@ -65,7 +76,8 @@ describe('Formulario de órdenes reales', () => {
     const { fixture, root } = await prepararFormulario();
     root.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
     await fixture.whenStable(); fixture.detectChanges();
-    expect(root.querySelector('[role="alert"]')?.textContent).toContain('Revisa el servicio');
+    expect(root.querySelector('dialog [role="alert"]')?.textContent).toContain('Revisa el servicio');
+    expect((root.querySelector('dialog') as HTMLDialogElement).open).toBe(true);
     expect(root.querySelector('tbody tr')).toBeNull();
     expect((root.querySelector('#descripcion') as HTMLTextAreaElement).value).toBe('Revisión');
   });
@@ -131,6 +143,32 @@ describe('Repuestos y permisos de órdenes', () => {
         obtenerCuentaActiva: () => ({ idTokenClaims: { oid } }),
       } },
     ] });
+  });
+
+  it('muestra solo la tabla inicialmente y ubica Nueva orden a la derecha de Actualizar', async () => {
+    const fixture = TestBed.createComponent(PaginaWorkOrders);
+    fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    const root: HTMLElement = fixture.nativeElement;
+    const cabecera = Array.from(root.querySelectorAll('header button'));
+    expect(cabecera.map(b => b.textContent?.trim())).toEqual(['Actualizar', '+ Nueva orden']);
+    expect(root.querySelector('tbody tr')?.textContent).toContain('#42');
+    const dialogo = root.querySelector('dialog') as HTMLDialogElement;
+    expect(dialogo.open).toBe(false);
+
+    cabecera[1].click(); fixture.detectChanges();
+    expect(dialogo.open).toBe(true);
+    expect(root.querySelector('#titulo-modal-orden')?.textContent).toContain('Nueva orden');
+
+    const cancelar = Array.from(dialogo.querySelectorAll('button')).find(b => b.textContent?.trim() === 'Cancelar')!;
+    cancelar.click(); fixture.detectChanges();
+    expect(dialogo.open).toBe(false);
+    expect(root.querySelector('tbody tr')?.textContent).toContain('#42');
+
+    cabecera[1].click(); fixture.detectChanges();
+    const escape = new Event('cancel', { cancelable: true });
+    dialogo.dispatchEvent(escape); fixture.detectChanges();
+    expect(escape.defaultPrevented).toBe(true);
+    expect(dialogo.open).toBe(false);
   });
 
   async function preparar() {
