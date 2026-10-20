@@ -95,7 +95,7 @@ export class PaginaWorkOrders implements OnInit {
   protected async crear(): Promise<void> {
     if (this.ocupado() || !this.servicioId || !this.descripcion.trim() || !this.direccion.trim()
         || this.descripcion.length > 1000 || this.direccion.length > 300) return;
-    if (!this.correoValido(this.emailContacto)) {
+    if (!this.correoValido(this.emailContacto, true)) {
       this.error.set('Ingresa un correo de contacto válido de hasta 254 caracteres.'); return;
     }
     this.guardando.set(true); this.error.set(''); this.mensaje.set('');
@@ -194,7 +194,7 @@ export class PaginaWorkOrders implements OnInit {
       return;
     }
     const asignando = this.nuevoEstado === 'ASIGNADA';
-    if (asignando && !this.correoValido(this.emailTecnico)) {
+    if (asignando && !this.correoValido(this.emailTecnico, true)) {
       this.error.set('Ingresa un correo del técnico válido de hasta 254 caracteres.'); return;
     }
     const repuestos: RepuestoOrden[] = [];
@@ -223,14 +223,16 @@ export class PaginaWorkOrders implements OnInit {
     finally { this.guardando.set(false); }
   }
 
-  protected correoValido(valor: string): boolean {
-    return new FormControl(valor.trim(), [Validators.email, Validators.maxLength(254)]).valid;
+  protected correoValido(valor: string, obligatorio = false): boolean {
+    return (!obligatorio || valor.trim().length > 0)
+      && new FormControl(valor.trim(), [Validators.email, Validators.maxLength(254)]).valid;
   }
 
   protected async guardarContactos(): Promise<void> {
     const orden = this.seleccionada();
     if (!orden || this.ocupado() || (!this.puedeGestionarEstado() && !this.esPropia(orden))) return;
-    if (!this.correoValido(this.contactoCliente) || (this.puedeGestionarEstado() && !this.correoValido(this.contactoTecnico))) {
+    if (!this.correoValido(this.contactoCliente, true)
+        || (this.puedeGestionarEstado() && !this.correoValido(this.contactoTecnico, !!orden.tecnicoId))) {
       this.error.set('Ingresa correos válidos de hasta 254 caracteres.'); return;
     }
     this.guardando.set(true); this.error.set(''); this.mensaje.set('');

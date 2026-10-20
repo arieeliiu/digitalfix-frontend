@@ -412,13 +412,16 @@ Se encuentran operativos:
 
 ## Evaluación 2: contactos
 
+Validación de correos obligatorios: 131 pruebas aprobadas y `npm run build` correcto.
+Persisten las advertencias de presupuesto: bundle inicial 643,95 kB y SCSS 4,11 kB.
+
 ### Ajuste de edición y permisos (19/10/2026)
 
 Admin puede editar cualquier orden CREADA y eliminar cualquier orden CREADA o CANCELADA.
 Cliente y Operador solo pueden realizar estas acciones sobre órdenes propias, en los
 mismos estados. La autorización definitiva se aplica en BFF y Workorders desde el JWT.
 
-Editar carga el correo del cliente y permite cambiarlo o vaciarlo (máximo 254 caracteres).
+Editar carga el correo del cliente y permite reemplazarlo por otro válido, obligatorio y de máximo 254 caracteres.
 Guardar envía primero los datos generales por PUT y solo después, si el correo cambió,
 PATCH `/contactos`. No son una transacción única: si PATCH falla se informa el guardado
 parcial, se conserva el formulario y no se anuncia éxito completo. Si PUT falla no se
@@ -429,13 +432,13 @@ Validación de este ajuste: 123 pruebas aprobadas, build Angular correcto con la
 advertencias de tamaño existentes (inicial 644,05 kB y SCSS 4,11 kB).
 Al integrar versiones, actualizar primero Workorders, después BFF y Frontend.
 
-La creación admite correo del cliente y la asignación correo del técnico, ambos
-opcionales y validados hasta 254 caracteres. Sin correo del técnico se advierte
-que no se enviará el ticket de despacho. Los correos no sustituyen al `oid` de Entra.
+La creación exige correo del cliente y la asignación exige correo del técnico, ambos
+válidos y de máximo 254 caracteres. Los correos no sustituyen al `oid` de Entra.
 
 El detalle permite corregir contactos incluso en órdenes cerradas: propietario,
 su correo; Admin/Operador, ambos. Los campos no modificados se omiten del PATCH;
-vaciar un campo lo elimina. La autorización definitiva sigue en BFF/Workorders.
+No se permite vaciar el correo del cliente ni el del técnico asignado. Las órdenes
+antiguas sin correo siguen consultables y pueden completarse. La autorización definitiva sigue en BFF/Workorders.
 Esta operación no cambia estado/stock ni reenvía mensajes anteriores.
 
 Validación del Paso 6: `npm test -- --watch=false` (109 aprobadas) y `npm run build`
