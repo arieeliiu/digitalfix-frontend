@@ -27,6 +27,7 @@ export class PaginaWorkOrders implements OnInit {
   protected readonly guardando = signal(false);
   protected readonly consultando = signal(false);
   protected readonly editandoId = signal<number | null>(null);
+  protected readonly editandoAsignacion = signal(false);
   protected readonly modalOrdenAbierto = signal(false);
   protected readonly modalDetalleAbierto = signal(false);
   protected readonly pendienteEliminar = signal<OrdenTrabajo | null>(null);
@@ -40,6 +41,7 @@ export class PaginaWorkOrders implements OnInit {
   protected emailContacto = '';
   private emailContactoOriginal = '';
   protected emailTecnico = '';
+  private emailTecnicoOriginal = '';
   protected nuevoEstado: EstadoOrden | '' = '';
   protected tecnicoId = '';
   protected readonly estadosDisponibles = computed<EstadoOrden[]>(() => {
@@ -82,13 +84,30 @@ export class PaginaWorkOrders implements OnInit {
     return this.repuestos().find(repuesto => repuesto.id === id)?.nombre ?? `Repuesto #${id}`;
   }
 
+  // Convertir los estados a etiquetas legibles, conservando los valores de la API.
+  protected nombreEstado(estado: EstadoOrden): string {
+    const etiquetas: Record<EstadoOrden, string> = {
+      CREADA: 'CREADA', ASIGNADA: 'ASIGNADA',
+      EN_DESPLAZAMIENTO: 'EN DESPLAZAMIENTO',
+      EN_EJECUCION: 'EN EJECUCIÓN',
+      CERRADA: 'CERRADA', CANCELADA: 'CANCELADA',
+    };
+    return etiquetas[estado];
+  }
+
+  private puedeEditarTecnico(orden: OrdenTrabajo): boolean {
+    return this.puedeGestionarEstado() && !!orden.tecnicoId
+      && ['ASIGNADA', 'EN_DESPLAZAMIENTO', 'EN_EJECUCION'].includes(orden.estado);
+  }
+
   protected esPropia(orden: OrdenTrabajo): boolean {
     const oid = this.auth.obtenerCuentaActiva()?.idTokenClaims?.oid;
     return typeof oid === 'string' && oid === orden.solicitanteId;
   }
 
   protected puedeEditar(orden: OrdenTrabajo): boolean {
-    return orden.estado === 'CREADA' && (this.auth.tieneRol('Admin') || this.esPropia(orden));
+    return (orden.estado === 'CREADA' && (this.auth.tieneRol('Admin') || this.esPropia(orden)))
+      || this.puedeEditarTecnico(orden);
   }
 
   protected puedeEliminar(orden: OrdenTrabajo): boolean {
@@ -137,6 +156,37 @@ export class PaginaWorkOrders implements OnInit {
   protected alCancelarDetalle(evento: Event): void {
     evento.preventDefault();
     this.cerrarDetalle();
+  }
+
+  // La corrección posterior usa PATCH /contactos; PUT solo permite editar órdenes CREADAS.
+  protected async guardarCorreoTecnico(): Promise<void> {
+    const id = this.editandoId();
+    const orden = this.ordenes().find(actual => actual.id === id);
+    if (id === null || !orden || !this.editandoAsignacion()
+        || !this.puedeEditarTecnico(orden) || this.ocupado()) return;
+    if (!this.correoValido(this.emailTecnico, true)) {
+      this.error.set('Ingresa un correo del técnico válido de hasta 254 caracteres.');
+      return;
+    }
+    if (this.emailTecnico.trim() === this.emailTecnicoOriginal) {
+      this.cancelarEdicion();
+      return;
+    }
+    this.guardando.set(true);
+    this.error.set('');
+    this.mensaje.set('');
+    try {
+      const actualizada = await firstValueFrom(this.api.actualizarContactos(id, {
+        emailTecnico: this.emailTecnico.trim(),
+      }));
+      this.reemplazarOrden(actualizada);
+      this.cancelarEdicion();
+      this.mensaje.set(`Correo del técnico de la orden #${id} actualizado correctamente.`);
+    } catch (error) {
+      this.error.set(mensajeErrorApi(error));
+    } finally {
+      this.guardando.set(false);
+    }
   }
 
   protected async crear(): Promise<void> {
@@ -193,15 +243,19 @@ export class PaginaWorkOrders implements OnInit {
       const orden = await firstValueFrom(this.api.consultarOrden(id));
       this.reemplazarOrden(orden);
       if (!this.puedeEditar(orden)) {
-        this.error.set('Solo puedes editar órdenes en estado CREADA si eres su propietario o Admin.');
+        this.error.set('No tienes permisos para editar esta orden en su estado actual.');
         return;
       }
+      this.editandoAsignacion.set(orden.estado !== 'CREADA');
       this.editandoId.set(id);
       this.servicioId = orden.servicioId;
       this.descripcion = orden.descripcion;
       this.direccion = orden.direccion;
       this.emailContacto = orden.emailContacto ?? '';
       this.emailContactoOriginal = this.emailContacto;
+      this.tecnicoId = orden.tecnicoId ?? '';
+      this.emailTecnico = orden.emailTecnico ?? '';
+      this.emailTecnicoOriginal = this.emailTecnico;
       this.pendienteEliminar.set(null);
       this.abrirModal();
     } catch (error) { this.error.set(mensajeErrorApi(error)); }
@@ -211,9 +265,10 @@ export class PaginaWorkOrders implements OnInit {
   protected cancelarEdicion(): void {
     if (this.modalOrden?.nativeElement.open) this.modalOrden.nativeElement.close();
     this.modalOrdenAbierto.set(false);
-    this.editandoId.set(null); this.servicioId = null; this.descripcion = ''; this.direccion = '';
-    this.emailContacto = '';
-    this.emailContactoOriginal = '';
+    this.editandoId.set(null); this.editandoAsignacion.set(false);
+    this.servicioId = null; this.descripcion = ''; this.direccion = '';
+    this.emailContacto = ''; this.emailContactoOriginal = '';
+    this.emailTecnico = ''; this.emailTecnicoOriginal = '';
   }
 
   protected solicitarEliminacion(orden: OrdenTrabajo): void {
