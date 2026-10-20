@@ -25,23 +25,22 @@
       <form #form="ngForm" (ngSubmit)="crear()">
         <fieldset [disabled]="ocupado() || servicios().length === 0">
           <label for="servicio">Servicio</label>
-          <select id="servicio" name="servicio" [(ngModel)]="servicioId" [disabled]="editandoAsignacion()" required>
+          <select id="servicio" name="servicio" [(ngModel)]="servicioId" required>
             <option [ngValue]="null">Selecciona un servicio</option>
             @for (servicio of servicios(); track servicio.id) {
               <option [ngValue]="servicio.id">{{ servicio.nombre }} — {{ servicio.tarifa | currency:'CLP':'symbol-narrow':'1.0-0' }}</option>
             }
           </select>
           <label for="descripcion">Descripción del trabajo</label>
-          <textarea id="descripcion" name="descripcion" [(ngModel)]="descripcion" [disabled]="editandoAsignacion()" required maxlength="1000" rows="3"></textarea>
+          <textarea id="descripcion" name="descripcion" [(ngModel)]="descripcion" required maxlength="1000" rows="3"></textarea>
           <label for="direccion">Dirección</label>
-          <input id="direccion" name="direccion" [(ngModel)]="direccion" [disabled]="editandoAsignacion()" required maxlength="300" />
+          <input id="direccion" name="direccion" [(ngModel)]="direccion" required maxlength="300" />
           <label for="email-contacto">Correo de contacto del cliente</label>
           <input id="email-contacto" name="emailContacto" type="email" email required maxlength="254" [(ngModel)]="emailContacto" #correoNuevo="ngModel" />
           @if (correoNuevo.invalid && correoNuevo.dirty) {
             <p class="mensaje-error" role="alert">Ingresa un correo válido de hasta 254 caracteres.</p>
           }
           @if (editandoAsignacion()) {
-            <p>Servicio, descripción y dirección no se modifican después de asignar la orden.</p>
             <label for="tecnico-actual">Técnico asignado</label>
             <input id="tecnico-actual" name="tecnicoActual" [value]="tecnicoId" disabled />
             <label for="editar-email-tecnico">Correo del técnico</label>
