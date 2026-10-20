@@ -319,6 +319,53 @@ describe('Repuestos y permisos de órdenes', () => {
     });
   });
 
+  it('muestra las etiquetas legibles de los estados sin modificar sus valores', async () => {
+    const { pagina, fixture, root } = await preparar();
+    pagina['ordenes'].set([{ ...orden, estado: 'EN_DESPLAZAMIENTO' }]);
+    pagina['seleccionada'].set({ ...orden, estado: 'EN_EJECUCION' });
+    fixture.detectChanges();
+    expect(root.querySelector('tbody tr')?.textContent).toContain('EN DESPLAZAMIENTO');
+    expect(root.querySelector('.modal-detalle')?.textContent).toContain('EN EJECUCIÓN');
+    expect(pagina['nombreEstado']('EN_DESPLAZAMIENTO')).toBe('EN DESPLAZAMIENTO');
+    expect(pagina['nombreEstado']('EN_EJECUCION')).toBe('EN EJECUCIÓN');
+  });
+
+  it.each(['ASIGNADA', 'EN_DESPLAZAMIENTO', 'EN_EJECUCION'] as const)
+  ('permite corregir el correo del técnico tras %s sin alterar repuestos', async estado => {
+    const actual = { ...orden, estado, tecnicoId: 'tecnico-1', emailTecnico: 'viejo@example.org',
+      repuestos: [{ repuestoId: 3, cantidad: 2 }] };
+    api.consultarOrden.mockReturnValue(of(actual));
+    api.actualizarContactos.mockReturnValue(of({ ...actual, emailTecnico: 'nuevo@example.org' }));
+    const { pagina, fixture, root } = await preparar();
+    pagina['ordenes'].set([actual]); fixture.detectChanges();
+    expect(pagina['puedeEditar'](actual)).toBe(true);
+    await pagina['editar'](42); fixture.detectChanges();
+    expect(pagina['editandoAsignacion']()).toBe(true);
+    expect((root.querySelector('#editar-email-tecnico') as HTMLInputElement).value).toBe('viejo@example.org');
+    expect(root.querySelector('#email-contacto')).toBeNull();
+    pagina['emailTecnico'] = 'nuevo@example.org';
+    await pagina['guardarCorreoTecnico']();
+    expect(api.actualizarContactos).toHaveBeenCalledWith(42, { emailTecnico: 'nuevo@example.org' });
+    expect(api.actualizarOrden).not.toHaveBeenCalled();
+    expect(pagina['ordenes']()[0].estado).toBe(estado);
+    expect(pagina['ordenes']()[0].repuestos).toEqual(actual.repuestos);
+    expect(pagina['editandoId']()).toBeNull();
+  });
+
+  it('rechaza correo de técnico vacío o inválido al editar la asignación', async () => {
+    const actual = { ...orden, estado: 'ASIGNADA' as const, tecnicoId: 'tecnico-1', emailTecnico: 'viejo@example.org' };
+    api.consultarOrden.mockReturnValue(of(actual));
+    const { pagina } = await preparar();
+    pagina['ordenes'].set([actual]);
+    await pagina['editar'](42);
+    pagina['emailTecnico'] = '  ';
+    await pagina['guardarCorreoTecnico']();
+    expect(api.actualizarContactos).not.toHaveBeenCalled();
+    pagina['emailTecnico'] = 'invalido';
+    await pagina['guardarCorreoTecnico']();
+    expect(api.actualizarContactos).not.toHaveBeenCalled();
+  });
+
   it('Consultar abre un modal y no ofrece editar el correo del cliente allí', async () => {
     const { pagina, fixture, root } = await preparar();
     const dialogo = root.querySelectorAll('dialog')[1] as HTMLDialogElement;
@@ -359,10 +406,14 @@ describe('Repuestos y permisos de órdenes', () => {
     rol = valor; oid = 'cliente';
     const { pagina } = await preparar();
     for (const estado of ['ASIGNADA', 'EN_DESPLAZAMIENTO', 'EN_EJECUCION', 'CERRADA', 'CANCELADA'] as const) {
-      const actual = { ...orden, estado };
+      const actual = { ...orden, estado, tecnicoId: 'tecnico-01' };
       api.consultarOrden.mockReturnValue(of(actual)); pagina['ordenes'].set([actual]);
-      expect(pagina['puedeEditar'](actual)).toBe(false);
-      await pagina['editar'](42); expect(pagina['editandoId']()).toBeNull();
+      const puedeCorregir = (valor === 'Admin' || valor === 'Operador')
+        && ['ASIGNADA', 'EN_DESPLAZAMIENTO', 'EN_EJECUCION'].includes(estado);
+      expect(pagina['puedeEditar'](actual)).toBe(puedeCorregir);
+      await pagina['editar'](42);
+      expect(pagina['editandoId']()).toBe(puedeCorregir ? 42 : null);
+      if (puedeCorregir) pagina['cancelarEdicion']();
       if (estado !== 'CANCELADA') {
         expect(pagina['puedeEliminar'](actual)).toBe(false);
         pagina['pendienteEliminar'].set(actual); await pagina['eliminar']();
