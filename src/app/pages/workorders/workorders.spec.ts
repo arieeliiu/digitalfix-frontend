@@ -154,7 +154,7 @@ describe('Repuestos y permisos de órdenes', () => {
     const fixture = TestBed.createComponent(PaginaWorkOrders);
     fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
     const root: HTMLElement = fixture.nativeElement;
-    const cabecera = Array.from(root.querySelectorAll('header button'));
+    const cabecera = Array.from(root.querySelectorAll<HTMLButtonElement>('header button'));
     expect(cabecera.map(b => b.textContent?.trim())).toEqual(['Actualizar', '+ Nueva orden']);
     expect(root.querySelector('tbody tr')?.textContent).toContain('#42');
     const dialogo = root.querySelector('dialog') as HTMLDialogElement;

@@ -321,6 +321,13 @@ http://localhost:4200
 
 Este origen debe estar registrado como Redirect URI de tipo SPA en Microsoft Entra ID.
 
+En `npm start` (configuración development) la API no pasa por API Gateway:
+`environment.development.ts` usa el mismo origen (`http://localhost:4200`) y
+`proxy.conf.json` reenvía `/api` al BFF local en `http://localhost:8080`.
+Para eso, el BFF (8080), Catalog (8081) y Workorders (8082) deben estar corriendo
+localmente; ver `../digitalfix-backend/CLAUDE.md`. La build de producción sigue usando
+`environment.ts` y la URL de API Gateway.
+
 ## Ejecución con Docker
 
 Construir y levantar el frontend:

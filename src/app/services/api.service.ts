@@ -266,15 +266,19 @@ export class ServicioApi {
 
     const url = new URL(baseUrl);
 
+    // En desarrollo local el proxy de Angular sirve la API en el mismo origen por HTTP.
+    const local = url.protocol === 'http:'
+      && (url.hostname === 'localhost' || url.hostname === '127.0.0.1');
+
     if (
-      url.protocol !== 'https:'
+      (url.protocol !== 'https:' && !local)
       || url.search
       || url.hash
       || url.username
       || url.password
     ) {
       throw new Error(
-        'apiGatewayUrl debe ser HTTPS sin parámetros ni credenciales.'
+        'apiGatewayUrl debe ser HTTPS (o HTTP en localhost) sin parámetros ni credenciales.'
       );
     }
 
