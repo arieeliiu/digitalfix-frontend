@@ -1,19 +1,9 @@
-<!-- Dashboard principal — navegación de módulos según el rol del usuario. -->
+<!-- Dashboard principal. La navegación entre módulos y la sesión viven en la barra superior. -->
 <main class="pagina">
 
   <!-- ── Encabezado ──────────────────────────────────────────────────────── -->
   <header class="encabezado-pagina">
-    <div>
-      <p class="subtitulo">DigitalFix</p>
-      <h1>Dashboard</h1>
-    </div>
-    <div class="acciones-header">
-      <span class="nombre-usuario">{{ autenticacion.obtenerNombreUsuario() }}</span>
-      <span class="etiqueta-rol">{{ autenticacion.etiquetaRol() }}</span>
-      <button type="button" class="btn btn-secundario" (click)="autenticacion.cerrarSesion()">
-        Cerrar sesión
-      </button>
-    </div>
+    <h1>Dashboard</h1>
   </header>
 
   @if (estadoConexion()) {
@@ -29,21 +19,6 @@
   } @else if (autenticacion.mensajeError()) {
     <p class="mensaje-error" role="alert">{{ autenticacion.mensajeError() }}</p>
   } @else {
-
-    <!-- ── Nav de módulos ────────────────────────────────────────────────── -->
-    <nav class="nav-modulos" aria-label="Módulos de la aplicación">
-      <a routerLink="/workorders"
-         class="nav-enlace"
-         [class.oculto]="!autenticacion.tieneRol('Admin') && !autenticacion.tieneRol('Operador') && !autenticacion.tieneRol('Cliente')">
-        Órdenes de trabajo
-      </a>
-      <a routerLink="/catalog"
-         class="nav-enlace"
-         [class.oculto]="!autenticacion.tieneRol('Admin') && !autenticacion.tieneRol('Operador')">
-        Catálogo técnico
-      </a>
-    </nav>
-
 
     <!-- ── Sin rol reconocido ──────────────────────────────────────────── -->
     @if (!autenticacion.tieneRol('Admin')

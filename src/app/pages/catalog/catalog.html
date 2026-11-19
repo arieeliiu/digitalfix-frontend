@@ -1,6 +1,6 @@
 <main class="pagina">
   <header class="encabezado-pagina">
-    <div><a routerLink="/dashboard" class="volver">← Dashboard</a><h1>Catálogo</h1></div>
+    <h1>Catálogo</h1>
     <a routerLink="/workorders" class="btn btn-primario">Crear una orden</a>
   </header>
   <button type="button" class="btn btn-secundario" (click)="cargar()" [disabled]="ocupadoServicios() && ocupadoRepuestos()">Actualizar</button>

@@ -1,0 +1,24 @@
+<header class="barra">
+  <a routerLink="/dashboard" class="marca">DigitalFix</a>
+
+  <nav class="navegacion" aria-label="Navegación principal">
+    @for (enlace of enlaces(); track enlace.ruta) {
+      <a
+        [routerLink]="enlace.ruta"
+        routerLinkActive="activo"
+        ariaCurrentWhenActive="page"
+        class="enlace"
+      >{{ enlace.etiqueta }}</a>
+    }
+  </nav>
+
+  <div class="usuario">
+    <span class="usuario__datos">
+      <span class="usuario__nombre">{{ autenticacion.obtenerNombreUsuario() }}</span>
+      <span class="usuario__rol">{{ autenticacion.etiquetaRol() }}</span>
+    </span>
+    <button type="button" class="cerrar-sesion" (click)="autenticacion.cerrarSesion()">
+      Cerrar sesión
+    </button>
+  </div>
+</header>

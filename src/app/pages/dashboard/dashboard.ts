@@ -1,7 +1,6 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
-import { RouterLink } from '@angular/router';
 
 import { ServicioAutenticacion } from '../../services/auth.service';
 import { ServicioApi } from '../../services/api.service';
@@ -10,7 +9,7 @@ import { ServicioApi } from '../../services/api.service';
 // ── Componente ───────
 @Component({
   selector: 'app-dashboard',
-  imports: [RouterLink],
+  imports: [],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss',
 })

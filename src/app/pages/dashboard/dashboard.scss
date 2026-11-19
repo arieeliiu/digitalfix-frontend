@@ -2,37 +2,19 @@
 
 :host {
   display: block;
-  font-family: Arial, sans-serif;
-  color: #172033;
-  background: #f1f5f9;
-  min-height: 100dvh;
 }
 
 .pagina {
-  max-width: 1100px;
+  max-width: var(--df-ancho-pagina);
   margin: 0 auto;
-  padding: 32px 24px;
+  padding: var(--df-esp-6) var(--df-esp-5);
   box-sizing: border-box;
 }
 
 // ── Encabezado ───────────────────────────────────────────────────────────────
 
 .encabezado-pagina {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  flex-wrap: wrap;
-  gap: 16px;
-  margin-bottom: 32px;
-}
-
-.subtitulo {
-  color: #2454a6;
-  font-size: 13px;
-  font-weight: 700;
-  margin: 0 0 4px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  margin-bottom: var(--df-esp-5);
 }
 
 h1 {
@@ -40,107 +22,18 @@ h1 {
   font-size: 28px;
 }
 
-.acciones-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.info-usuario {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
-}
-
-.nombre-usuario {
-  font-size: 14px;
-  font-weight: 600;
-  color: #172033;
-}
-
-.etiqueta-rol {
-  font-size: 11px;
-  color: #2454a6;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-}
-
-// ── Nav de módulos ───────────────────────────────────────────────────────────
-
-.nav-modulos {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-bottom: 32px;
-}
-
-.nav-enlace {
-  display: inline-block;
-  padding: 8px 16px;
-  border-radius: 8px;
-  background: white;
-  border: 1px solid #dbe3ed;
-  color: #2454a6;
-  font-size: 14px;
-  font-weight: 600;
-  text-decoration: none;
-
-  &:hover {
-    background: #e8f0fb;
-  }
-}
-
-.oculto {
-  display: none;
-}
-
-// ── Botones ──────────────────────────────────────────────────────────────────
-
-.btn {
-  display: inline-block;
-  padding: 10px 20px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  text-decoration: none;
-  border: none;
-
-  &.btn-primario {
-    background: #2454a6;
-    color: white;
-
-    &:hover { background: #1c3f82; }
-  }
-
-  &.btn-secundario {
-    background: white;
-    color: #475569;
-    border: 1px solid #dbe3ed;
-
-    &:hover { background: #f1f5f9; }
-  }
-
-  &.btn-sm {
-    padding: 6px 14px;
-    font-size: 13px;
-  }
-}
-
 // ── Mensajes ─────────────────────────────────────────────────────────────────
 
 .estado-carga {
-  color: #475569;
+  color: var(--df-texto-secundario);
   font-size: 14px;
 }
 
 .mensaje-error {
-  color: #991b1b;
-  background: #fee2e2;
+  color: var(--df-peligro-texto);
+  background: var(--df-peligro-suave);
   border: 1px solid #fca5a5;
-  padding: 12px 16px;
-  border-radius: 8px;
+  padding: var(--df-esp-3) var(--df-esp-4);
+  border-radius: var(--df-radio-md);
   font-size: 14px;
 }
