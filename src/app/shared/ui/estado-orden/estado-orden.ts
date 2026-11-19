@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, input } from '@angular/co
 
 import { EstadoOrden } from '../../../services/api.service';
 
-const ETIQUETAS: Record<EstadoOrden, string> = {
+export const ETIQUETAS_ESTADO: Record<EstadoOrden, string> = {
   CREADA: 'Creada',
   ASIGNADA: 'Asignada',
   EN_DESPLAZAMIENTO: 'En desplazamiento',
@@ -20,6 +20,6 @@ const ETIQUETAS: Record<EstadoOrden, string> = {
 })
 export class EstadoOrdenBadge {
   readonly estado = input.required<EstadoOrden>();
-  protected readonly etiqueta = computed(() => ETIQUETAS[this.estado()]);
+  protected readonly etiqueta = computed(() => ETIQUETAS_ESTADO[this.estado()]);
   protected readonly clase = computed(() => this.estado().toLowerCase().replaceAll('_', '-'));
 }

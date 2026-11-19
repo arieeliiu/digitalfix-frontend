@@ -1,14 +1,17 @@
 import { Component, computed, ElementRef, inject, OnInit, signal, ViewChild } from '@angular/core';
-import { CurrencyPipe, DatePipe } from '@angular/common';
+import { CurrencyPipe, DatePipe, NgTemplateOutlet } from '@angular/common';
 import { FormsModule, FormControl, Validators } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { ServicioApi, OrdenTrabajo, ServicioCatalogo, EstadoOrden, RepuestoCatalogo, RepuestoOrden } from '../../services/api.service';
 import { BotonIcono } from '../../shared/ui/boton-icono/boton-icono';
+import { EstadoOrdenBadge } from '../../shared/ui/estado-orden/estado-orden';
+import { OrdenDesplegable } from './orden-desplegable/orden-desplegable';
+import { FiltrosOrdenes } from './filtros-ordenes/filtros-ordenes';
 import { ServicioAutenticacion } from '../../services/auth.service';
 import { mensajeErrorApi } from '../../services/error-api';
 
 @Component({
-  selector: 'app-workorders', imports: [FormsModule, CurrencyPipe, DatePipe, BotonIcono],
+  selector: 'app-workorders', imports: [FormsModule, CurrencyPipe, DatePipe, BotonIcono, EstadoOrdenBadge, OrdenDesplegable, FiltrosOrdenes, NgTemplateOutlet],
   templateUrl: './workorders.html', styleUrl: './workorders.scss',
 })
 export class PaginaWorkOrders implements OnInit {
@@ -86,6 +89,58 @@ export class PaginaWorkOrders implements OnInit {
     try { this.repuestos.set(await firstValueFrom(this.api.listarRepuestos())); }
     catch (error) { this.errorRepuestos.set(mensajeErrorApi(error)); }
     finally { this.cargandoRepuestos.set(false); }
+  }
+
+  // Orden fijo del flujo para que el resumen se lea igual que el ciclo de vida de la orden.
+  private static readonly ORDEN_ESTADOS: EstadoOrden[] = ['CREADA', 'ASIGNADA', 'EN_DESPLAZAMIENTO', 'EN_EJECUCION', 'CERRADA', 'CANCELADA'];
+
+  // Conteo por estado sobre las órdenes ya cargadas: no agrega llamadas a la API.
+  protected readonly resumenEstados = computed(() => {
+    const ordenes = this.ordenes();
+    return PaginaWorkOrders.ORDEN_ESTADOS
+      .map(estado => ({ estado, cantidad: ordenes.filter(o => o.estado === estado).length }))
+      .filter(item => item.cantidad > 0);
+  });
+
+  // Filtros sobre las órdenes ya cargadas.
+  protected readonly filtroTexto = signal('');
+  protected readonly filtroEstado = signal<EstadoOrden | ''>('');
+  protected readonly filtroServicio = signal<number | null>(null);
+
+  protected readonly ordenesFiltradas = computed(() => {
+    const texto = this.filtroTexto().trim().toLowerCase();
+    const estado = this.filtroEstado();
+    const servicio = this.filtroServicio();
+    return this.ordenes().filter(orden =>
+      (!estado || orden.estado === estado)
+      && (servicio === null || orden.servicioId === servicio)
+      && (!texto || [`#${orden.id}`, orden.descripcion, orden.direccion,
+        orden.emailTecnico ?? '', orden.tecnicoId ?? '', this.nombreServicio(orden.servicioId)]
+        .some(campo => campo.toLowerCase().includes(texto))));
+  });
+
+  // Las cerradas ya no requieren gestión: van en su propio grupo, plegado por defecto.
+  protected readonly ordenesActivas = computed(() => this.ordenesFiltradas().filter(o => o.estado !== 'CERRADA'));
+  protected readonly ordenesCerradas = computed(() => this.ordenesFiltradas().filter(o => o.estado === 'CERRADA'));
+  protected readonly cerradasAbiertas = signal(false);
+
+  // Órdenes desplegadas en la lista; se permiten varias abiertas a la vez para comparar.
+  protected readonly expandidas = signal<ReadonlySet<number>>(new Set());
+
+  protected estaExpandida(id: number): boolean {
+    return this.expandidas().has(id);
+  }
+
+  protected alternarOrden(id: number): void {
+    this.expandidas.update(actuales => {
+      const siguientes = new Set(actuales);
+      if (!siguientes.delete(id)) siguientes.add(id);
+      return siguientes;
+    });
+  }
+
+  protected nombreServicio(id: number): string {
+    return this.servicios().find(servicio => servicio.id === id)?.nombre ?? `Servicio #${id}`;
   }
 
   protected nombreRepuesto(id: number): string {

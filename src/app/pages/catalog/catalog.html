@@ -3,7 +3,6 @@
     <h1>Catálogo</h1>
     <div class="acciones-header">
       <df-boton-icono icono="actualizar" etiqueta="Actualizar" [cargando]="cargandoServicios() || cargandoRepuestos()" [deshabilitado]="ocupadoServicios() && ocupadoRepuestos()" (accion)="cargar()" />
-      <a routerLink="/workorders" class="btn btn-secundario">Crear una orden</a>
     </div>
   </header>
   <section aria-labelledby="titulo-servicios" [attr.aria-busy]="cargandoServicios()">
@@ -46,10 +45,7 @@
     }
     @if (cargandoServicios()) { <p role="status">Cargando servicios...</p> }
     @if (errorServicios()) {
-      <div class="mensaje-error mensaje-error--accion" role="alert">
-        <p>No se pudieron cargar los servicios. {{ errorServicios() }}</p>
-        <df-boton-icono icono="actualizar" etiqueta="Reintentar servicios" [cargando]="cargandoServicios()" [deshabilitado]="ocupadoServicios()" (accion)="cargarServicios()" />
-      </div>
+      <p class="mensaje-error" role="alert">No se pudieron cargar los servicios. {{ errorServicios() }}</p>
     }
   @if (!cargandoServicios() && !errorServicios()) {
     @if (servicios().length === 0) { <p>No hay servicios disponibles todavía.</p> }
@@ -110,10 +106,7 @@
     }
     @if (cargandoRepuestos()) { <p role="status">Cargando repuestos...</p> }
     @if (errorRepuestos()) {
-      <div class="mensaje-error mensaje-error--accion" role="alert">
-        <p>No se pudieron cargar los repuestos. {{ errorRepuestos() }}</p>
-        <df-boton-icono icono="actualizar" etiqueta="Reintentar repuestos" [cargando]="cargandoRepuestos()" [deshabilitado]="ocupadoRepuestos()" (accion)="cargarRepuestos()" />
-      </div>
+      <p class="mensaje-error" role="alert">No se pudieron cargar los repuestos. {{ errorRepuestos() }}</p>
     }
     @if (!cargandoRepuestos() && !errorRepuestos()) {
       @if (repuestos().length === 0) { <p>No hay repuestos disponibles todavía.</p> }

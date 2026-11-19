@@ -1,0 +1,87 @@
+<!-- Franja superior solo visible en pantallas angostas: marca y botón para abrir el menú. -->
+<header class="franja-movil">
+  <a routerLink="/dashboard" class="marca" (click)="cerrarMenu()">
+    <ng-container *ngTemplateOutlet="logo" />
+    DigitalFix
+  </a>
+  <button
+    type="button"
+    class="boton-menu"
+    aria-controls="menu-lateral"
+    [attr.aria-expanded]="menuAbierto()"
+    [attr.aria-label]="menuAbierto() ? 'Cerrar menú' : 'Abrir menú'"
+    (click)="alternarMenu()"
+  >
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" class="icono">
+      @if (menuAbierto()) {
+        <path d="M6 6l12 12M18 6 6 18" />
+      } @else {
+        <path d="M4 7h16M4 12h16M4 17h16" />
+      }
+    </svg>
+  </button>
+</header>
+
+@if (menuAbierto()) {
+  <div class="fondo" aria-hidden="true" (click)="cerrarMenu()"></div>
+}
+
+<aside id="menu-lateral" class="lateral" [class.lateral--abierta]="menuAbierto()">
+  <a routerLink="/dashboard" class="marca marca--lateral" (click)="cerrarMenu()">
+    <ng-container *ngTemplateOutlet="logo" />
+    DigitalFix
+  </a>
+
+  <nav class="navegacion" aria-label="Navegación principal">
+    @for (enlace of enlaces(); track enlace.ruta) {
+      <a
+        [routerLink]="enlace.ruta"
+        routerLinkActive="activo"
+        ariaCurrentWhenActive="page"
+        class="enlace"
+        (click)="cerrarMenu()"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" class="icono">
+          @switch (enlace.icono) {
+            @case ('dashboard') {
+              <rect x="3.5" y="3.5" width="7" height="7" rx="1.5" />
+              <rect x="13.5" y="3.5" width="7" height="7" rx="1.5" />
+              <rect x="3.5" y="13.5" width="7" height="7" rx="1.5" />
+              <rect x="13.5" y="13.5" width="7" height="7" rx="1.5" />
+            }
+            @case ('ordenes') {
+              <rect x="5" y="4" width="14" height="17" rx="2" />
+              <path d="M9 4V3h6v1M9 10h6M9 14h6M9 18h3" />
+            }
+            @case ('catalogo') {
+              <path d="M12 3 20 7.5v9L12 21l-8-4.5v-9z" />
+              <path d="M4 7.5 12 12l8-4.5M12 12v9" />
+            }
+          }
+        </svg>
+        <span>{{ enlace.etiqueta }}</span>
+      </a>
+    }
+  </nav>
+
+  <div class="usuario">
+    <span class="usuario__avatar" aria-hidden="true">{{ autenticacion.obtenerNombreUsuario().charAt(0) }}</span>
+    <span class="usuario__datos">
+      <span class="usuario__nombre">{{ autenticacion.obtenerNombreUsuario() }}</span>
+      <span class="usuario__rol">{{ autenticacion.etiquetaRol() }}</span>
+    </span>
+    <button type="button" class="cerrar-sesion" (click)="autenticacion.cerrarSesion()">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" class="icono">
+        <path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4M10 16l-4-4 4-4M6 12h10" />
+      </svg>
+      Cerrar sesión
+    </button>
+  </div>
+</aside>
+
+<!-- Logo compartido por la franja móvil y la barra lateral. -->
+<ng-template #logo>
+  <span class="logo" aria-hidden="true">
+    <svg viewBox="0 0 24 24" focusable="false"><path d="M13 2 4 14h7l-1 8 9-12h-7z" /></svg>
+  </span>
+</ng-template>
