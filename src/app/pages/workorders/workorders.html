@@ -70,25 +70,86 @@
       </form>
       </div>
     </dialog>
-    <h2>Órdenes registradas</h2>
+    <div class="encabezado-lista">
+      <h2 id="titulo-ordenes">Órdenes registradas</h2>
+      @if (ordenes().length > 0) {
+        <ul class="resumen-estados" aria-label="Órdenes por estado">
+          <li class="resumen-estados__total">{{ ordenes().length }} {{ ordenes().length === 1 ? 'orden' : 'órdenes' }}</li>
+          @for (item of resumenEstados(); track item.estado) {
+            <li><df-estado-orden [estado]="item.estado" /> {{ item.cantidad }}</li>
+          }
+        </ul>
+      }
+    </div>
     @if (ordenes().length === 0 && !error()) { <p>No hay órdenes registradas.</p> }
     @if (ordenes().length > 0) {
-      <div class="tabla-contenedor"><table class="tabla">
-        <thead><tr><th>Orden</th><th>Descripción</th><th>Estado</th><th>Fecha</th><th>Acciones</th></tr></thead>
-        <tbody>@for (orden of ordenes(); track orden.id) {
-          <tr><td>#{{ orden.id }}</td><td>{{ orden.descripcion }}</td><td>{{ nombreEstado(orden.estado) }}</td><td>{{ orden.fechaCreacion | date:'dd/MM/yyyy HH:mm' }}</td>
-            <td><div class="acciones-orden">
-              <button type="button" class="btn btn-secundario" (click)="consultar(orden.id)" [disabled]="ocupado()">Consultar</button>
-              @if (puedeEditar(orden)) {
-                <button type="button" class="btn btn-secundario" (click)="editar(orden.id)" [disabled]="ocupado()">Editar</button>
-              }
-              @if (puedeEliminar(orden)) {
-                <button type="button" class="btn btn-peligro" (click)="solicitarEliminacion(orden)" [disabled]="ocupado()">Eliminar</button>
-              }
-            </div></td></tr>
-        }</tbody>
-      </table></div>
+      <app-filtros-ordenes
+        [servicios]="servicios()"
+        [total]="ordenes().length"
+        [visibles]="ordenesFiltradas().length"
+        [(texto)]="filtroTexto"
+        [(estado)]="filtroEstado"
+        [(servicioId)]="filtroServicio"
+      />
+      @if (ordenesFiltradas().length === 0) {
+        <p class="sin-resultados">Ninguna orden coincide con los filtros.</p>
+      } @else {
+        <!-- Cada orden se resume en una fila y se despliega para ver el resto: menos ruido al escanear. -->
+        @if (ordenesActivas().length > 0) {
+          <ul class="lista-ordenes" aria-labelledby="titulo-ordenes">
+            @for (orden of ordenesActivas(); track orden.id) {
+              <li><ng-container *ngTemplateOutlet="itemOrden; context: { $implicit: orden }" /></li>
+            }
+          </ul>
+        } @else {
+          <p class="sin-resultados">No hay órdenes activas.</p>
+        }
+        @if (ordenesCerradas().length > 0) {
+          <section class="grupo-cerradas" [class.grupo-cerradas--abierto]="cerradasAbiertas()">
+            <h3 class="grupo-cerradas__titulo">
+              <button
+                type="button"
+                id="boton-cerradas"
+                aria-controls="lista-cerradas"
+                [attr.aria-expanded]="cerradasAbiertas()"
+                (click)="cerradasAbiertas.set(!cerradasAbiertas())"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6" /></svg>
+                Órdenes cerradas
+                <span class="grupo-cerradas__cantidad">{{ ordenesCerradas().length }}</span>
+              </button>
+            </h3>
+            <!-- Siempre en el DOM para animar la altura; plegado queda inerte. -->
+            <div class="grupo-cerradas__panel" [inert]="!cerradasAbiertas()">
+              <ul id="lista-cerradas" class="lista-ordenes" aria-labelledby="boton-cerradas">
+                @for (orden of ordenesCerradas(); track orden.id) {
+                  <li><ng-container *ngTemplateOutlet="itemOrden; context: { $implicit: orden }" /></li>
+                }
+              </ul>
+            </div>
+          </section>
+        }
+      }
     }
+    <!-- Plantilla única del ítem, usada por la lista activa y por el grupo de cerradas. -->
+    <ng-template #itemOrden let-orden>
+      <app-orden-desplegable
+        [orden]="orden"
+        [nombreServicio]="nombreServicio(orden.servicioId)"
+        [abierta]="estaExpandida(orden.id)"
+        (alternar)="alternarOrden(orden.id)"
+      >
+        <div class="acciones-orden">
+          <button type="button" class="btn btn-secundario" (click)="consultar(orden.id)" [disabled]="ocupado()">Consultar</button>
+          @if (puedeEditar(orden)) {
+            <button type="button" class="btn btn-secundario" (click)="editar(orden.id)" [disabled]="ocupado()">Editar</button>
+          }
+          @if (puedeEliminar(orden)) {
+            <button type="button" class="btn btn-peligro" (click)="solicitarEliminacion(orden)" [disabled]="ocupado()">Eliminar</button>
+          }
+        </div>
+      </app-orden-desplegable>
+    </ng-template>
     @if (pendienteEliminar(); as orden) {
       <section class="formulario-orden" aria-labelledby="confirmar-eliminacion">
         <h2 id="confirmar-eliminacion">Eliminar orden #{{ orden.id }}</h2>

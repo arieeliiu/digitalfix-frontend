@@ -68,7 +68,7 @@ describe('Formulario de órdenes reales', () => {
     expect((root.querySelector('dialog') as HTMLDialogElement).open).toBe(false);
     expect((root.querySelectorAll('dialog')[1] as HTMLDialogElement).open).toBe(false);
     expect(fixture.componentInstance['seleccionada']()).toBeNull();
-    expect(root.textContent).toContain('CREADA');
+    expect(root.querySelector('app-orden-desplegable')?.textContent).toContain('Creada');
     const consultar = Array.from(root.querySelectorAll('button')).find(b => b.textContent?.trim() === 'Consultar')!;
     consultar.click(); await fixture.whenStable(); fixture.detectChanges();
     expect(api.consultarOrden).toHaveBeenCalledWith(42);
@@ -83,7 +83,7 @@ describe('Formulario de órdenes reales', () => {
     await fixture.whenStable(); fixture.detectChanges();
     expect(root.querySelector('dialog [role="alert"]')?.textContent).toContain('Revisa el servicio');
     expect((root.querySelector('dialog') as HTMLDialogElement).open).toBe(true);
-    expect(root.querySelector('tbody tr')).toBeNull();
+    expect(root.querySelector('app-orden-desplegable')).toBeNull();
     expect((root.querySelector('#descripcion') as HTMLTextAreaElement).value).toBe('Revisión');
   });
 
@@ -152,7 +152,7 @@ describe('Repuestos y permisos de órdenes', () => {
     ] });
   });
 
-  it('muestra solo la tabla inicialmente y ubica Nueva orden a la derecha de Actualizar', async () => {
+  it('muestra solo la lista inicialmente y ubica Nueva orden a la derecha de Actualizar', async () => {
     // Sin servicios el botón Nueva orden queda deshabilitado y el modal no abriría.
     api.listarServicios.mockReturnValueOnce(of([{ id: 1, nombre: 'Mantención', descripcion: '', tarifa: 25000 }]));
     const fixture = TestBed.createComponent(PaginaWorkOrders);
@@ -162,7 +162,7 @@ describe('Repuestos y permisos de órdenes', () => {
     const cabecera = Array.from(root.querySelectorAll<HTMLButtonElement>('header button'));
     // Botones solo con icono: su nombre accesible está en aria-label.
     expect(cabecera.map(b => b.getAttribute('aria-label'))).toEqual(['Actualizar', 'Nueva orden']);
-    expect(root.querySelector('tbody tr')?.textContent).toContain('#42');
+    expect(root.querySelector('app-orden-desplegable')?.textContent).toContain('#42');
     const dialogo = root.querySelector('dialog') as HTMLDialogElement;
     expect(dialogo.open).toBe(false);
 
@@ -173,7 +173,7 @@ describe('Repuestos y permisos de órdenes', () => {
     const cancelar = Array.from(dialogo.querySelectorAll('button')).find(b => b.textContent?.trim() === 'Cancelar')!;
     cancelar.click(); fixture.detectChanges();
     expect(dialogo.open).toBe(false);
-    expect(root.querySelector('tbody tr')?.textContent).toContain('#42');
+    expect(root.querySelector('app-orden-desplegable')?.textContent).toContain('#42');
 
     cabecera[1].click(); fixture.detectChanges();
     const escape = new Event('cancel', { cancelable: true });
@@ -327,12 +327,116 @@ describe('Repuestos y permisos de órdenes', () => {
     });
   });
 
+  it('cada orden se resume con servicio, fecha y estado y se despliega al seleccionarla', async () => {
+    const { pagina, fixture, root } = await preparar();
+    pagina['servicios'].set([{ id: 1, nombre: 'Mantención', descripcion: '', tarifa: 25000 }]);
+    pagina['ordenes'].set([orden]);
+    fixture.detectChanges();
+    const resumen = root.querySelector('#resumen-orden-42') as HTMLButtonElement;
+    const panel = root.querySelector('#detalle-orden-42') as HTMLElement & { inert: boolean };
+    expect(resumen.textContent).toContain('Mantención');
+    expect(resumen.textContent).toContain('Creada');
+    expect(resumen.textContent).toMatch(/\d{2}\/\d{2}\/2026/);
+    expect(resumen.getAttribute('aria-expanded')).toBe('false');
+    expect(resumen.getAttribute('aria-controls')).toBe('detalle-orden-42');
+    expect(panel.inert).toBe(true);
+
+    resumen.click(); fixture.detectChanges();
+    expect(resumen.getAttribute('aria-expanded')).toBe('true');
+    expect(panel.inert).toBe(false);
+    expect(panel.textContent).toContain('Calle 123');
+
+    resumen.click(); fixture.detectChanges();
+    expect(resumen.getAttribute('aria-expanded')).toBe('false');
+  });
+
+  it('el detalle muestra servicio, dirección, técnico, contacto, repuestos y el resumen por estado', async () => {
+    const { pagina, fixture, root } = await preparar();
+    pagina['ordenes'].set([
+      { ...orden, emailContacto: null },
+      { ...orden, id: 43, estado: 'ASIGNADA', emailTecnico: 'tecnico@example.org', repuestos: [{ repuestoId: 3, cantidad: 2 }] },
+    ]);
+    pagina['servicios'].set([{ id: 1, nombre: 'Mantención', descripcion: '', tarifa: 25000 }]);
+    fixture.detectChanges();
+    const [primera, segunda] = Array.from(root.querySelectorAll('app-orden-desplegable'));
+    expect(primera.textContent).toContain('Mantención');
+    expect(primera.textContent).toContain('Calle 123');
+    expect(primera.textContent).toContain('Sin asignar');
+    expect(primera.textContent).toContain('No registrado');
+    expect(segunda.textContent).toContain('tecnico@example.org');
+    expect(segunda.textContent).toContain('2 repuestos');
+    const resumen = root.querySelector('[aria-label="Órdenes por estado"]')?.textContent?.replace(/\s+/g, ' ');
+    expect(resumen).toContain('2 órdenes');
+    expect(resumen).toContain('Creada 1');
+    expect(resumen).toContain('Asignada 1');
+  });
+
+  it('muestra el técnico en segundo plano y agrupa las cerradas en un submenú plegado', async () => {
+    const { pagina, fixture, root } = await preparar();
+    pagina['servicios'].set([{ id: 1, nombre: 'Mantención', descripcion: '', tarifa: 25000 }]);
+    pagina['ordenes'].set([
+      { ...orden, emailTecnico: 'tecnico@example.org' },
+      { ...orden, id: 50, estado: 'CERRADA' },
+    ]);
+    fixture.detectChanges();
+    expect(root.querySelector('#resumen-orden-42 .tecnico')?.textContent).toContain('tecnico@example.org');
+    expect(root.querySelector('#resumen-orden-50 .tecnico')?.textContent).toContain('Sin técnico asignado');
+
+    const activas = root.querySelector('.lista-ordenes:not(#lista-cerradas)')!;
+    expect(activas.querySelector('#resumen-orden-42')).not.toBeNull();
+    expect(activas.querySelector('#resumen-orden-50')).toBeNull();
+    expect(root.querySelector('#lista-cerradas #resumen-orden-50')).not.toBeNull();
+
+    const boton = root.querySelector('#boton-cerradas') as HTMLButtonElement;
+    const panel = root.querySelector('.grupo-cerradas__panel') as HTMLElement & { inert: boolean };
+    expect(boton.textContent).toContain('Órdenes cerradas');
+    expect(boton.getAttribute('aria-expanded')).toBe('false');
+    expect(panel.inert).toBe(true);
+    boton.click(); fixture.detectChanges();
+    expect(boton.getAttribute('aria-expanded')).toBe('true');
+    expect(panel.inert).toBe(false);
+  });
+
+  it('los filtros por texto, estado y servicio reducen la lista y se pueden limpiar', async () => {
+    const { pagina, fixture, root } = await preparar();
+    pagina['servicios'].set([
+      { id: 1, nombre: 'Mantención', descripcion: '', tarifa: 25000 },
+      { id: 2, nombre: 'Instalación', descripcion: '', tarifa: 40000 },
+    ]);
+    pagina['ordenes'].set([
+      orden,
+      { ...orden, id: 43, servicioId: 2, descripcion: 'Luminarias LED', estado: 'ASIGNADA' },
+    ]);
+    fixture.detectChanges();
+    const visibles = () => Array.from(root.querySelectorAll('app-orden-desplegable button.resumen')).map(b => b.id);
+    expect(visibles()).toEqual(['resumen-orden-42', 'resumen-orden-43']);
+
+    pagina['filtroTexto'].set('led'); fixture.detectChanges();
+    expect(visibles()).toEqual(['resumen-orden-43']);
+    expect(root.textContent).toContain('Mostrando 1 de 2');
+
+    pagina['filtroTexto'].set(''); pagina['filtroEstado'].set('CREADA'); fixture.detectChanges();
+    expect(visibles()).toEqual(['resumen-orden-42']);
+
+    pagina['filtroEstado'].set(''); pagina['filtroServicio'].set(2); fixture.detectChanges();
+    expect(visibles()).toEqual(['resumen-orden-43']);
+
+    pagina['filtroTexto'].set('no existe'); fixture.detectChanges();
+    expect(root.textContent).toContain('Ninguna orden coincide con los filtros.');
+
+    const limpiar = Array.from(root.querySelectorAll('button')).find(b => b.textContent?.trim() === 'Limpiar filtros')!;
+    limpiar.click(); fixture.detectChanges();
+    expect(pagina['filtroTexto']()).toBe('');
+    expect(pagina['filtroServicio']()).toBeNull();
+    expect(visibles()).toHaveLength(2);
+  });
+
   it('muestra las etiquetas legibles de los estados sin modificar sus valores', async () => {
     const { pagina, fixture, root } = await preparar();
     pagina['ordenes'].set([{ ...orden, estado: 'EN_DESPLAZAMIENTO' }]);
     pagina['seleccionada'].set({ ...orden, estado: 'EN_EJECUCION' });
     fixture.detectChanges();
-    expect(root.querySelector('tbody tr')?.textContent).toContain('EN DESPLAZAMIENTO');
+    expect(root.querySelector('app-orden-desplegable')?.textContent).toContain('En desplazamiento');
     expect(root.querySelector('.modal-detalle')?.textContent).toContain('EN EJECUCIÓN');
     expect(pagina['nombreEstado']('EN_DESPLAZAMIENTO')).toBe('EN DESPLAZAMIENTO');
     expect(pagina['nombreEstado']('EN_EJECUCION')).toBe('EN EJECUCIÓN');
@@ -396,7 +500,7 @@ describe('Repuestos y permisos de órdenes', () => {
     expect(cancelar.defaultPrevented).toBe(true);
     expect(dialogo.open).toBe(false);
     expect(pagina['seleccionada']()).toBeNull();
-    expect(root.querySelector('tbody tr')?.textContent).toContain('#42');
+    expect(root.querySelector('app-orden-desplegable')?.textContent).toContain('#42');
   });
 
   it('Admin ve las acciones y edita una orden ajena conservando el propietario', async () => {
