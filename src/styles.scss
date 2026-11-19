@@ -70,18 +70,6 @@ body {
   font-size: 14px;
 }
 
-// Error con su acción de reintentar al lado del texto.
-.mensaje-error--accion {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--df-esp-3);
-
-  p {
-    margin: 0;
-  }
-}
-
 @media (max-width: 420px) {
   .pagina {
     padding: var(--df-esp-5) var(--df-esp-4);

@@ -11,10 +11,7 @@
   @if (mensaje()) { <p role="status">{{ mensaje() }}</p> }
   @if (cargandoRepuestos()) { <p role="status">Cargando repuestos...</p> }
   @if (errorRepuestos()) {
-    <div class="mensaje-error mensaje-error--accion" role="alert">
-      <p>No se pudieron cargar los repuestos. {{ errorRepuestos() }}</p>
-      <df-boton-icono icono="actualizar" etiqueta="Reintentar repuestos" [cargando]="cargandoRepuestos()" [deshabilitado]="ocupado()" (accion)="cargarRepuestos()" />
-    </div>
+    <p class="mensaje-error" role="alert">No se pudieron cargar los repuestos. {{ errorRepuestos() }}</p>
   }
   @if (!cargando()) {
     <dialog #modalOrden class="modal-orden" aria-modal="true" aria-labelledby="titulo-modal-orden" (cancel)="alCancelarModal($event)">
@@ -113,10 +110,7 @@
         @if (error()) { <p class="mensaje-error" role="alert">{{ error() }}</p> }
         @if (mensaje()) { <p role="status">{{ mensaje() }}</p> }
         @if (errorRepuestos()) {
-          <div class="mensaje-error mensaje-error--accion" role="alert">
-            <p>No se pudieron cargar los repuestos. {{ errorRepuestos() }}</p>
-            <df-boton-icono icono="actualizar" etiqueta="Reintentar repuestos" [cargando]="cargandoRepuestos()" [deshabilitado]="ocupado()" (accion)="cargarRepuestos()" />
-          </div>
+          <p class="mensaje-error" role="alert">No se pudieron cargar los repuestos. {{ errorRepuestos() }}</p>
         }
         <p>{{ orden.descripcion }}</p><p>Dirección: {{ orden.direccion }}</p>
         <p>Estado: {{ nombreEstado(orden.estado) }}</p><p>Servicio: #{{ orden.servicioId }}</p>

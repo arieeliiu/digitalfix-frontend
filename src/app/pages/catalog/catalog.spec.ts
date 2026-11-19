@@ -77,7 +77,7 @@ describe('Catálogo de lectura', () => {
     expect(root.querySelector('table')).toBeNull();
   });
 
-  it.each(['servicios', 'repuestos'])('el error de %s no rompe la otra sección y permite reintentar solo esa consulta', async seccion => {
+  it.each(['servicios', 'repuestos'])('el error de %s no rompe la otra sección y se reintenta con Actualizar', async seccion => {
     const { fixture, root, consultaServicios, consultaRepuestos } = preparar();
     const fallaServicios = seccion === 'servicios';
     const fallida = fallaServicios ? consultaServicios : consultaRepuestos;
@@ -89,11 +89,11 @@ describe('Catálogo de lectura', () => {
     expect(root.querySelector('[role="alert"]')?.textContent).toContain('No se pudo completar la operación en el catálogo. Inténtalo nuevamente.');
     expect(root.textContent).toContain(fallaServicios ? 'Cable' : 'Mantención');
     expect(root.textContent).not.toContain(`No hay ${seccion} disponibles`);
-    const reintentar = boton(root, `Reintentar ${seccion}`);
-    reintentar.click(); fixture.detectChanges();
-    const ruta = fallaServicios ? 'services' : 'spare-parts';
-    http.expectOne(`${baseUrl}/api/catalog/${ruta}`).flush(fallaServicios ? servicios : repuestos);
-    http.expectNone(`${baseUrl}/api/catalog/${fallaServicios ? 'spare-parts' : 'services'}`);
+    // El cuadro de error no trae botón propio: se reintenta con el Actualizar del encabezado.
+    expect(root.querySelector('[role="alert"] button')).toBeNull();
+    boton(root, 'Actualizar').click(); fixture.detectChanges();
+    http.expectOne(`${baseUrl}/api/catalog/services`).flush(servicios);
+    http.expectOne(`${baseUrl}/api/catalog/spare-parts`).flush(repuestos);
     await fixture.whenStable(); fixture.detectChanges();
     expect(root.querySelector('[role="alert"]')).toBeNull();
     expect(root.querySelectorAll('table')).toHaveLength(2);

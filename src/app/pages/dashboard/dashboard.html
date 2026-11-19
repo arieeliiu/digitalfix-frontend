@@ -27,10 +27,7 @@
       <p class="estado-carga" role="status">Cargando órdenes...</p>
     }
     @if (errorOrdenes()) {
-      <div class="mensaje-error mensaje-error--accion" role="alert">
-        <p>No se pudieron cargar las órdenes. {{ errorOrdenes() }}</p>
-        <df-boton-icono icono="actualizar" etiqueta="Reintentar órdenes" [deshabilitado]="cargandoOrdenes()" (accion)="cargarOrdenes()" />
-      </div>
+      <p class="mensaje-error" role="alert">No se pudieron cargar las órdenes. {{ errorOrdenes() }}</p>
     }
 
     <!-- ── Admin: indicadores de la red ─────────────────────────────────── -->
@@ -48,10 +45,7 @@
           </div>
         </dl>
         @if (errorRepuestos()) {
-          <div class="mensaje-error mensaje-error--accion" role="alert">
-            <p>No se pudo consultar el stock. {{ errorRepuestos() }}</p>
-            <df-boton-icono icono="actualizar" etiqueta="Reintentar repuestos" [deshabilitado]="cargandoRepuestos()" (accion)="cargarRepuestos()" />
-          </div>
+          <p class="mensaje-error" role="alert">No se pudo consultar el stock. {{ errorRepuestos() }}</p>
         } @else if (repuestosSinStock().length > 0) {
           <p class="aviso-stock">
             Sin stock:
