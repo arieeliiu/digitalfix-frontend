@@ -142,13 +142,14 @@ describe('Dashboard por rol', () => {
     expect(api.listarOrdenes).not.toHaveBeenCalled();
   });
 
-  it('el error de órdenes se informa y el icono de reintentar vuelve a consultar', async () => {
+  it('el error de órdenes se informa sin botón propio y Actualizar vuelve a consultar', async () => {
     api.listarOrdenes.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 503 })));
     const { fixture, root } = await preparar('Operador');
     expect(root.querySelector('[role="alert"]')?.textContent).toContain('No se pudieron cargar las órdenes.');
 
     api.listarOrdenes.mockReturnValue(of(ordenes));
-    (root.querySelector('button[aria-label="Reintentar órdenes"]') as HTMLButtonElement).click();
+    expect(root.querySelector('[role="alert"] button')).toBeNull();
+    (root.querySelector('button[aria-label="Actualizar"]') as HTMLButtonElement).click();
     await vi.waitFor(() => { fixture.detectChanges(); expect(root.querySelector('#titulo-por-asignar')).not.toBeNull(); });
 
     expect(root.querySelector('[role="alert"]')).toBeNull();

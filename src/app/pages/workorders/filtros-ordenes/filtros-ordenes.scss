@@ -1,0 +1,102 @@
+// Barra compacta: los filtros acompañan a la lista sin competir con ella.
+.filtros {
+  display: grid;
+  grid-template-columns: minmax(220px, 2fr) repeat(2, minmax(160px, 1fr));
+  gap: var(--df-esp-3) var(--df-esp-4);
+  margin-bottom: var(--df-esp-4);
+  padding: var(--df-esp-4);
+  border: 1px solid var(--df-borde);
+  border-radius: var(--df-radio-lg);
+  background: var(--df-superficie);
+}
+
+.titulo {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--df-texto-secundario);
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.campo {
+  display: grid;
+  gap: var(--df-esp-1);
+  min-width: 0;
+
+  label {
+    color: var(--df-texto-secundario);
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  input,
+  select {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 38px;
+    padding: 0 var(--df-esp-3);
+    border: 1px solid var(--df-borde-control);
+    border-radius: var(--df-radio-sm);
+    background: var(--df-superficie);
+    color: var(--df-texto);
+    font: inherit;
+    font-size: 14px;
+
+    &:focus-visible {
+      outline: 3px solid var(--df-primario-suave);
+      border-color: var(--df-primario);
+    }
+  }
+}
+
+.pie {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--df-esp-3);
+}
+
+.conteo {
+  margin: 0;
+  color: var(--df-texto-tenue);
+  font-size: 13px;
+}
+
+.limpiar {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--df-primario);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    outline: 3px solid var(--df-primario);
+    outline-offset: 2px;
+  }
+}
+
+@media (max-width: 720px) {
+  .filtros {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .campo--busqueda {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 420px) {
+  .filtros {
+    grid-template-columns: 1fr;
+  }
+}

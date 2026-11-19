@@ -1,5 +1,9 @@
-@if (mostrarBarra()) {
-  <app-barra-superior />
-}
-<!-- Angular muestra aquí la página correspondiente a la ruta actual. -->
-<router-outlet />
+<!-- Un solo router-outlet: si se alternara entre dos, la página se recrearía al mostrar la barra. -->
+<div class="estructura" [class.estructura--con-barra]="mostrarBarra()">
+  @if (mostrarBarra()) {
+    <app-barra-lateral />
+  }
+  <div class="contenido">
+    <router-outlet />
+  </div>
+</div>

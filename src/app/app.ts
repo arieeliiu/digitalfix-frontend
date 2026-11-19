@@ -3,7 +3,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter, map } from 'rxjs';
 
-import { BarraSuperior } from './layout/barra-superior/barra-superior';
+import { BarraLateral } from './layout/barra-lateral/barra-lateral';
 import { ServicioAutenticacion } from './services/auth.service';
 
 // En estas rutas no hay sesión útil que navegar: la barra estorbaría.
@@ -11,7 +11,7 @@ const RUTAS_SIN_BARRA = ['/', '/error-autenticacion'];
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, BarraSuperior],
+  imports: [RouterOutlet, BarraLateral],
   templateUrl: './app.html',
   styleUrl: './app.scss',
 })
