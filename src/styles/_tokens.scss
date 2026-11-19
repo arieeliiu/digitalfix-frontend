@@ -1,0 +1,39 @@
+// Tokens de diseño de DigitalFix. Las páginas usan solo var(--df-*), nunca hex sueltos.
+:root {
+  // Texto
+  --df-texto: #172033;
+  --df-texto-secundario: #475569;
+  --df-texto-tenue: #64748b;
+  // Superficies
+  --df-fondo: #f1f5f9;
+  --df-superficie: #ffffff;
+  --df-superficie-alt: #f8fafc;
+  --df-borde: #dbe3ed;
+  --df-borde-control: #94a3b8;
+  // Marca
+  --df-primario: #2454a6;
+  --df-primario-hover: #1c3f82;
+  --df-primario-suave: #dbeafe;
+  // Estados semánticos
+  --df-exito: #166534;
+  --df-exito-suave: #dcfce7;
+  --df-advertencia: #92400e;
+  --df-advertencia-suave: #fef3c7;
+  --df-peligro: #b91c1c;
+  --df-peligro-texto: #991b1b;
+  --df-peligro-suave: #fee2e2;
+  // Forma y espacio (escala de 4px)
+  --df-radio-sm: 6px;
+  --df-radio-md: 8px;
+  --df-radio-lg: 12px;
+  --df-radio-xl: 16px;
+  --df-esp-1: 4px;
+  --df-esp-2: 8px;
+  --df-esp-3: 12px;
+  --df-esp-4: 16px;
+  --df-esp-5: 24px;
+  --df-esp-6: 32px;
+  --df-ancho-pagina: 1100px;
+  --df-alto-barra: 56px;
+  --df-fuente: Arial, sans-serif;
+}

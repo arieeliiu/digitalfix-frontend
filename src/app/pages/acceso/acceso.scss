@@ -1,0 +1,39 @@
+// Estilos de la bienvenida pública (antes vivían en app.scss).
+:host {
+  display: block;
+}
+
+.bienvenida {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: var(--df-esp-5);
+  box-sizing: border-box;
+  background: var(--df-fondo);
+}
+
+.tarjeta-bienvenida {
+  width: 100%;
+  max-width: 640px;
+  padding: 40px;
+  box-sizing: border-box;
+  background: var(--df-superficie);
+  border: 1px solid var(--df-borde);
+  border-radius: var(--df-radio-xl);
+}
+
+.encabezado {
+  color: var(--df-primario);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+h1 {
+  margin: var(--df-esp-4) 0;
+  font-size: clamp(36px, 8vw, 56px);
+}
+
+.descripcion {
+  color: var(--df-texto-secundario);
+  line-height: 1.6;
+}

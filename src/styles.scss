@@ -1,1 +1,9 @@
-/* You can add global styles to this file, and also import other style files */
+@use './styles/tokens';
+
+// Base común: las páginas solo agregan lo propio de cada pantalla.
+body {
+  margin: 0;
+  font-family: var(--df-fuente);
+  color: var(--df-texto);
+  background: var(--df-fondo);
+}
