@@ -74,19 +74,19 @@ describe('Componente principal de DigitalFix', () => {
   it('oculta la barra en la página pública de acceso', async () => {
     const elemento = await navegarA('/');
 
-    expect(elemento.querySelector('app-barra-superior')).toBeNull();
+    expect(elemento.querySelector('app-barra-lateral')).toBeNull();
   });
 
   it('oculta la barra en el error de autenticación', async () => {
     const elemento = await navegarA('/error-autenticacion');
 
-    expect(elemento.querySelector('app-barra-superior')).toBeNull();
+    expect(elemento.querySelector('app-barra-lateral')).toBeNull();
   });
 
   it('oculta la barra si no hay cuenta activa', async () => {
     cuentaActiva = false;
     const elemento = await navegarA('/dashboard');
 
-    expect(elemento.querySelector('app-barra-superior')).toBeNull();
+    expect(elemento.querySelector('app-barra-lateral')).toBeNull();
   });
 });
