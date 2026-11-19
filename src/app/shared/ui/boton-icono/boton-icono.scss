@@ -1,0 +1,98 @@
+:host {
+  display: inline-flex;
+  position: relative;
+}
+
+.boton {
+  display: inline-grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border-radius: var(--df-radio-md);
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 3px solid var(--df-primario);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.icono {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+// Crear: relleno sólido de marca, la acción principal de la pantalla.
+.boton--crear {
+  border: 0;
+  background: var(--df-primario);
+  color: var(--df-superficie);
+  box-shadow: 0 2px 6px rgb(36 84 166 / 35%);
+
+  &:hover:not(:disabled) {
+    background: var(--df-primario-hover);
+  }
+}
+
+// Actualizar: contorno de marca para destacar sin competir con Crear.
+.boton--actualizar {
+  border: 2px solid var(--df-primario);
+  background: var(--df-superficie);
+  color: var(--df-primario);
+
+  &:hover:not(:disabled) {
+    background: var(--df-primario-suave);
+  }
+}
+
+.boton--cargando .icono {
+  animation: girar 0.9s linear infinite;
+}
+
+@keyframes girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .boton--cargando .icono {
+    animation: none;
+  }
+}
+
+// Tooltip con la etiqueta: anclado a la derecha para no salirse de la pantalla en encabezados.
+.boton::after {
+  content: attr(data-etiqueta);
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  padding: 4px var(--df-esp-2);
+  border-radius: var(--df-radio-sm);
+  background: var(--df-texto);
+  color: var(--df-superficie);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+}
+
+.boton:hover::after,
+.boton:focus-visible::after {
+  opacity: 1;
+  visibility: visible;
+}

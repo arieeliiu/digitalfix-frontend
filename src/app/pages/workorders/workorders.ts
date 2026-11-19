@@ -3,11 +3,12 @@ import { CurrencyPipe, DatePipe } from '@angular/common';
 import { FormsModule, FormControl, Validators } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { ServicioApi, OrdenTrabajo, ServicioCatalogo, EstadoOrden, RepuestoCatalogo, RepuestoOrden } from '../../services/api.service';
+import { BotonIcono } from '../../shared/ui/boton-icono/boton-icono';
 import { ServicioAutenticacion } from '../../services/auth.service';
 import { mensajeErrorApi } from '../../services/error-api';
 
 @Component({
-  selector: 'app-workorders', imports: [FormsModule, CurrencyPipe, DatePipe],
+  selector: 'app-workorders', imports: [FormsModule, CurrencyPipe, DatePipe, BotonIcono],
   templateUrl: './workorders.html', styleUrl: './workorders.scss',
 })
 export class PaginaWorkOrders implements OnInit {

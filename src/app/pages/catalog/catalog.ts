@@ -6,9 +6,10 @@ import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ServicioApi, ServicioCatalogo, RepuestoCatalogo } from '../../services/api.service';
 import { mensajeErrorCatalogo } from '../../services/error-catalogo';
+import { BotonIcono } from '../../shared/ui/boton-icono/boton-icono';
 
 @Component({
-  selector: 'app-catalog', imports: [RouterLink, CurrencyPipe, FormsModule],
+  selector: 'app-catalog', imports: [RouterLink, CurrencyPipe, FormsModule, BotonIcono],
   templateUrl: './catalog.html', styleUrl: './catalog.scss',
 })
 export class PaginaCatalog implements OnInit {

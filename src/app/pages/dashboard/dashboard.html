@@ -1,9 +1,12 @@
-<!-- Dashboard principal. La navegación entre módulos y la sesión viven en la barra superior. -->
+<!-- Dashboard principal: un resumen distinto por rol. La navegación y la sesión viven en la barra superior. -->
 <main class="pagina">
 
   <!-- ── Encabezado ──────────────────────────────────────────────────────── -->
   <header class="encabezado-pagina">
     <h1>Dashboard</h1>
+    @if (veOrdenes() && !errorConexion()) {
+      <df-boton-icono icono="actualizar" etiqueta="Actualizar" [cargando]="cargando()" [deshabilitado]="cargando()" (accion)="cargar()" />
+    }
   </header>
 
   @if (estadoConexion()) {
@@ -20,11 +23,84 @@
     <p class="mensaje-error" role="alert">{{ autenticacion.mensajeError() }}</p>
   } @else {
 
+    @if (cargandoOrdenes()) {
+      <p class="estado-carga" role="status">Cargando órdenes...</p>
+    }
+    @if (errorOrdenes()) {
+      <div class="mensaje-error mensaje-error--accion" role="alert">
+        <p>No se pudieron cargar las órdenes. {{ errorOrdenes() }}</p>
+        <df-boton-icono icono="actualizar" etiqueta="Reintentar órdenes" [deshabilitado]="cargandoOrdenes()" (accion)="cargarOrdenes()" />
+      </div>
+    }
+
+    <!-- ── Admin: indicadores de la red ─────────────────────────────────── -->
+    @if (esAdmin() && !cargandoOrdenes() && !errorOrdenes()) {
+      <section class="seccion" aria-labelledby="titulo-red">
+        <h2 id="titulo-red">Estado de la red</h2>
+        <dl class="kpis">
+          <div class="kpi"><dt>Órdenes activas</dt><dd>{{ kpis().activas }}</dd></div>
+          <div class="kpi"><dt>Por asignar</dt><dd>{{ kpis().porAsignar }}</dd></div>
+          <div class="kpi"><dt>En terreno</dt><dd>{{ kpis().enTerreno }}</dd></div>
+          <div class="kpi"><dt>Cerradas</dt><dd>{{ kpis().cerradas }}</dd></div>
+          <div class="kpi" [class.kpi--alerta]="repuestosSinStock().length > 0">
+            <dt>Repuestos sin stock</dt>
+            <dd>{{ errorRepuestos() || cargandoRepuestos() ? '—' : repuestosSinStock().length }}</dd>
+          </div>
+        </dl>
+        @if (errorRepuestos()) {
+          <div class="mensaje-error mensaje-error--accion" role="alert">
+            <p>No se pudo consultar el stock. {{ errorRepuestos() }}</p>
+            <df-boton-icono icono="actualizar" etiqueta="Reintentar repuestos" [deshabilitado]="cargandoRepuestos()" (accion)="cargarRepuestos()" />
+          </div>
+        } @else if (repuestosSinStock().length > 0) {
+          <p class="aviso-stock">
+            Sin stock:
+            @for (repuesto of repuestosSinStock(); track repuesto.id) {
+              <span class="aviso-stock__item">{{ repuesto.nombre }}</span>
+            }
+          </p>
+        }
+      </section>
+    }
+
+    <!-- ── Operador: lo que requiere acción ─────────────────────────────── -->
+    @if (esOperador() && !cargandoOrdenes() && !errorOrdenes()) {
+      <section class="seccion" aria-labelledby="titulo-por-asignar">
+        <h2 id="titulo-por-asignar">Por asignar <span class="contador">{{ porAsignar().length }}</span></h2>
+        @if (porAsignar().length === 0) {
+          <p class="vacio">No hay órdenes esperando técnico.</p>
+        } @else {
+          <ng-container *ngTemplateOutlet="tablaOrdenes; context: { $implicit: porAsignar(), direccion: true }" />
+        }
+      </section>
+      <section class="seccion" aria-labelledby="titulo-en-terreno">
+        <h2 id="titulo-en-terreno">En terreno <span class="contador">{{ enTerreno().length }}</span></h2>
+        @if (enTerreno().length === 0) {
+          <p class="vacio">No hay técnicos en desplazamiento ni en ejecución.</p>
+        } @else {
+          <ng-container *ngTemplateOutlet="tablaOrdenes; context: { $implicit: enTerreno(), direccion: true }" />
+        }
+      </section>
+    }
+
+    <!-- ── Cliente: sus últimas órdenes ─────────────────────────────────── -->
+    @if (esCliente() && !cargandoOrdenes() && !errorOrdenes()) {
+      <section class="seccion" aria-labelledby="titulo-ultimas">
+        <h2 id="titulo-ultimas">Mis últimas órdenes</h2>
+        @if (ultimas().length === 0) {
+          <p class="vacio">Todavía no tienes órdenes de trabajo.</p>
+        } @else {
+          <ng-container *ngTemplateOutlet="tablaOrdenes; context: { $implicit: ultimas(), direccion: false }" />
+        }
+      </section>
+    }
+
+    @if (veOrdenes() && !cargandoOrdenes() && !errorOrdenes()) {
+      <a routerLink="/workorders" class="ver-todas">Ver todas las órdenes de trabajo →</a>
+    }
+
     <!-- ── Sin rol reconocido ──────────────────────────────────────────── -->
-    @if (!autenticacion.tieneRol('Admin')
-      && !autenticacion.tieneRol('Operador')
-      && !autenticacion.tieneRol('Cliente')
-      && !autenticacion.tieneRol('Auditor')) {
+    @if (sinRol()) {
       <p role="alert" class="mensaje-error">
         Tu cuenta no tiene un rol asignado en DigitalFix.
         Contacta al administrador del sistema.
@@ -33,3 +109,34 @@
 
   }
 </main>
+
+<!-- Tabla compacta reutilizada por las listas del dashboard. -->
+<ng-template #tablaOrdenes let-lista let-direccion="direccion">
+  <div class="tabla-contenedor">
+    <table class="tabla">
+      <thead>
+        <tr>
+          <th scope="col">Orden</th>
+          <th scope="col">Servicio</th>
+          @if (direccion) { <th scope="col">Dirección</th> }
+          <th scope="col">Estado</th>
+          <th scope="col">Creada</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (orden of lista.slice(0, maximoFilas); track orden.id) {
+          <tr>
+            <td class="celda-id">#{{ orden.id }}</td>
+            <td>{{ nombreServicio(orden.servicioId) }}</td>
+            @if (direccion) { <td class="celda-direccion">{{ orden.direccion }}</td> }
+            <td><df-estado-orden [estado]="orden.estado" /></td>
+            <td class="celda-fecha">{{ orden.fechaCreacion | date: 'dd/MM/yyyy HH:mm' }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  @if (lista.length > maximoFilas) {
+    <p class="mas-filas">Y {{ lista.length - maximoFilas }} más en Órdenes de trabajo.</p>
+  }
+</ng-template>

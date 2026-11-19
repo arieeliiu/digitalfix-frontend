@@ -1,0 +1,24 @@
+<button
+  type="button"
+  class="boton"
+  [class.boton--crear]="icono() === 'crear'"
+  [class.boton--actualizar]="icono() === 'actualizar'"
+  [class.boton--cargando]="cargando()"
+  [attr.id]="idBoton()"
+  [attr.aria-label]="etiqueta()"
+  [attr.aria-busy]="cargando() || null"
+  [attr.data-etiqueta]="etiqueta()"
+  [disabled]="deshabilitado()"
+  (click)="accion.emit()"
+>
+  @if (icono() === 'crear') {
+    <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" class="icono">
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  } @else {
+    <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" class="icono">
+      <path d="M20 11a8 8 0 1 0-2.34 5.66" />
+      <path d="M20 4v7h-7" />
+    </svg>
+  }
+</button>

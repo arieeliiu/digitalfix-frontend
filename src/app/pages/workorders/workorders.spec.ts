@@ -160,7 +160,8 @@ describe('Repuestos y permisos de órdenes', () => {
     const root: HTMLElement = fixture.nativeElement;
     await vi.waitFor(() => { fixture.detectChanges(); expect(fixture.componentInstance['ocupado']()).toBe(false); });
     const cabecera = Array.from(root.querySelectorAll<HTMLButtonElement>('header button'));
-    expect(cabecera.map(b => b.textContent?.trim())).toEqual(['Actualizar', '+ Nueva orden']);
+    // Botones solo con icono: su nombre accesible está en aria-label.
+    expect(cabecera.map(b => b.getAttribute('aria-label'))).toEqual(['Actualizar', 'Nueva orden']);
     expect(root.querySelector('tbody tr')?.textContent).toContain('#42');
     const dialogo = root.querySelector('dialog') as HTMLDialogElement;
     expect(dialogo.open).toBe(false);
