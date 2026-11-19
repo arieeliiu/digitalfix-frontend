@@ -1,1 +1,89 @@
-/* You can add global styles to this file, and also import other style files */
+@use './styles/tokens';
+
+// Base común: las páginas solo agregan lo propio de cada pantalla.
+body {
+  margin: 0;
+  font-family: var(--df-fuente);
+  color: var(--df-texto);
+  background: var(--df-fondo);
+}
+
+// ── Layout de página ─────────────────────────────────────────────────────────
+
+.pagina {
+  max-width: var(--df-ancho-pagina);
+  margin: 0 auto;
+  padding: var(--df-esp-6) var(--df-esp-5);
+  box-sizing: border-box;
+}
+
+// Título a la izquierda y acciones (iconos de actualizar y crear) a la derecha.
+.encabezado-pagina {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--df-esp-4);
+  margin-bottom: var(--df-esp-5);
+
+  h1 {
+    margin: 0;
+    font-size: 26px;
+  }
+}
+
+.acciones-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--df-esp-3);
+}
+
+// Encabezado de una sección dentro de la página, con su propia acción a la derecha.
+.encabezado-seccion {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--df-esp-3);
+  margin-bottom: var(--df-esp-3);
+
+  h2 {
+    margin: 0;
+    font-size: 20px;
+  }
+}
+
+// ── Mensajes ─────────────────────────────────────────────────────────────────
+
+.estado-carga {
+  color: var(--df-texto-secundario);
+  font-size: 14px;
+}
+
+.mensaje-error {
+  color: var(--df-peligro-texto);
+  background: var(--df-peligro-suave);
+  border: 1px solid #fca5a5;
+  padding: var(--df-esp-3) var(--df-esp-4);
+  margin: 0 0 var(--df-esp-4);
+  border-radius: var(--df-radio-md);
+  font-size: 14px;
+}
+
+// Error con su acción de reintentar al lado del texto.
+.mensaje-error--accion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--df-esp-3);
+
+  p {
+    margin: 0;
+  }
+}
+
+@media (max-width: 420px) {
+  .pagina {
+    padding: var(--df-esp-5) var(--df-esp-4);
+  }
+}

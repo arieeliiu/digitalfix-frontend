@@ -1,9 +1,9 @@
 <main class="pagina">
   <header class="encabezado-pagina">
-    <div><a routerLink="/dashboard" class="volver">← Dashboard</a><h1>Órdenes de trabajo</h1></div>
+    <h1>Órdenes de trabajo</h1>
     <div class="acciones-header">
-      <button type="button" class="btn btn-secundario" (click)="cargar()" [disabled]="ocupado()">Actualizar</button>
-      <button id="abrir-nueva-orden" type="button" class="btn btn-primario" (click)="abrirNuevaOrden()" [disabled]="ocupado() || servicios().length === 0">+ Nueva orden</button>
+      <df-boton-icono icono="actualizar" etiqueta="Actualizar" [cargando]="cargando()" [deshabilitado]="ocupado()" (accion)="cargar()" />
+      <df-boton-icono idBoton="abrir-nueva-orden" icono="crear" etiqueta="Nueva orden" [deshabilitado]="ocupado() || servicios().length === 0" (accion)="abrirNuevaOrden()" />
     </div>
   </header>
   @if (cargando()) { <p role="status">Cargando servicios y órdenes...</p> }
@@ -11,9 +11,9 @@
   @if (mensaje()) { <p role="status">{{ mensaje() }}</p> }
   @if (cargandoRepuestos()) { <p role="status">Cargando repuestos...</p> }
   @if (errorRepuestos()) {
-    <div class="mensaje-error" role="alert">
+    <div class="mensaje-error mensaje-error--accion" role="alert">
       <p>No se pudieron cargar los repuestos. {{ errorRepuestos() }}</p>
-      <button type="button" class="btn btn-secundario" (click)="cargarRepuestos()" [disabled]="ocupado()">Reintentar repuestos</button>
+      <df-boton-icono icono="actualizar" etiqueta="Reintentar repuestos" [cargando]="cargandoRepuestos()" [deshabilitado]="ocupado()" (accion)="cargarRepuestos()" />
     </div>
   }
   @if (!cargando()) {
@@ -113,9 +113,9 @@
         @if (error()) { <p class="mensaje-error" role="alert">{{ error() }}</p> }
         @if (mensaje()) { <p role="status">{{ mensaje() }}</p> }
         @if (errorRepuestos()) {
-          <div class="mensaje-error" role="alert">
+          <div class="mensaje-error mensaje-error--accion" role="alert">
             <p>No se pudieron cargar los repuestos. {{ errorRepuestos() }}</p>
-            <button type="button" class="btn btn-secundario" (click)="cargarRepuestos()" [disabled]="ocupado()">Reintentar repuestos</button>
+            <df-boton-icono icono="actualizar" etiqueta="Reintentar repuestos" [cargando]="cargandoRepuestos()" [deshabilitado]="ocupado()" (accion)="cargarRepuestos()" />
           </div>
         }
         <p>{{ orden.descripcion }}</p><p>Dirección: {{ orden.direccion }}</p>

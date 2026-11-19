@@ -89,7 +89,7 @@ describe('Catálogo de lectura', () => {
     expect(root.querySelector('[role="alert"]')?.textContent).toContain('No se pudo completar la operación en el catálogo. Inténtalo nuevamente.');
     expect(root.textContent).toContain(fallaServicios ? 'Cable' : 'Mantención');
     expect(root.textContent).not.toContain(`No hay ${seccion} disponibles`);
-    const reintentar = Array.from(root.querySelectorAll('button')).find(b => b.textContent?.trim() === `Reintentar ${seccion}`)!;
+    const reintentar = boton(root, `Reintentar ${seccion}`);
     reintentar.click(); fixture.detectChanges();
     const ruta = fallaServicios ? 'services' : 'spare-parts';
     http.expectOne(`${baseUrl}/api/catalog/${ruta}`).flush(fallaServicios ? servicios : repuestos);

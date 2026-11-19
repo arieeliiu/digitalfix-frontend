@@ -1,15 +1,21 @@
 <main class="pagina">
   <header class="encabezado-pagina">
-    <div><a routerLink="/dashboard" class="volver">← Dashboard</a><h1>Catálogo</h1></div>
-    <a routerLink="/workorders" class="btn btn-primario">Crear una orden</a>
+    <h1>Catálogo</h1>
+    <div class="acciones-header">
+      <df-boton-icono icono="actualizar" etiqueta="Actualizar" [cargando]="cargandoServicios() || cargandoRepuestos()" [deshabilitado]="ocupadoServicios() && ocupadoRepuestos()" (accion)="cargar()" />
+      <a routerLink="/workorders" class="btn btn-secundario">Crear una orden</a>
+    </div>
   </header>
-  <button type="button" class="btn btn-secundario" (click)="cargar()" [disabled]="ocupadoServicios() && ocupadoRepuestos()">Actualizar</button>
   <section aria-labelledby="titulo-servicios" [attr.aria-busy]="cargandoServicios()">
-    <h2 id="titulo-servicios">Servicios técnicos</h2>
+    <div class="encabezado-seccion">
+      <h2 id="titulo-servicios">Servicios técnicos</h2>
+      @if (esAdmin()) {
+        <df-boton-icono icono="crear" etiqueta="Nuevo servicio" [deshabilitado]="ocupadoServicios() || formularioServicio()" (accion)="abrirServicio()" />
+      }
+    </div>
     @if (mensajeServicios()) { <p role="status">{{ mensajeServicios() }}</p> }
     @if (errorOperacionServicios()) { <p class="mensaje-error" role="alert">{{ errorOperacionServicios() }}</p> }
     @if (esAdmin()) {
-      <button type="button" class="btn btn-primario" (click)="abrirServicio()" [disabled]="ocupadoServicios() || formularioServicio()">Nuevo servicio</button>
       @if (formularioServicio()) {
         <form class="formulario-catalogo" aria-labelledby="form-servicio" (ngSubmit)="guardarServicio()">
           <h3 id="form-servicio">{{ datosServicio.id === null ? 'Nuevo servicio' : 'Editar servicio' }}</h3>
@@ -40,9 +46,9 @@
     }
     @if (cargandoServicios()) { <p role="status">Cargando servicios...</p> }
     @if (errorServicios()) {
-      <div class="mensaje-error" role="alert">
+      <div class="mensaje-error mensaje-error--accion" role="alert">
         <p>No se pudieron cargar los servicios. {{ errorServicios() }}</p>
-        <button type="button" class="btn btn-secundario" (click)="cargarServicios()" [disabled]="ocupadoServicios()">Reintentar servicios</button>
+        <df-boton-icono icono="actualizar" etiqueta="Reintentar servicios" [cargando]="cargandoServicios()" [deshabilitado]="ocupadoServicios()" (accion)="cargarServicios()" />
       </div>
     }
   @if (!cargandoServicios() && !errorServicios()) {
@@ -65,11 +71,15 @@
   }
   </section>
   <section aria-labelledby="titulo-repuestos" [attr.aria-busy]="cargandoRepuestos()">
-    <h2 id="titulo-repuestos">Repuestos</h2>
+    <div class="encabezado-seccion">
+      <h2 id="titulo-repuestos">Repuestos</h2>
+      @if (esAdmin()) {
+        <df-boton-icono icono="crear" etiqueta="Nuevo repuesto" [deshabilitado]="ocupadoRepuestos() || formularioRepuesto()" (accion)="abrirRepuesto()" />
+      }
+    </div>
     @if (mensajeRepuestos()) { <p role="status">{{ mensajeRepuestos() }}</p> }
     @if (errorOperacionRepuestos()) { <p class="mensaje-error" role="alert">{{ errorOperacionRepuestos() }}</p> }
     @if (esAdmin()) {
-      <button type="button" class="btn btn-primario" (click)="abrirRepuesto()" [disabled]="ocupadoRepuestos() || formularioRepuesto()">Nuevo repuesto</button>
       @if (formularioRepuesto()) {
         <form class="formulario-catalogo" aria-labelledby="form-repuesto" (ngSubmit)="guardarRepuesto()">
           <h3 id="form-repuesto">{{ datosRepuesto.id === null ? 'Nuevo repuesto' : 'Editar repuesto' }}</h3>
@@ -100,9 +110,9 @@
     }
     @if (cargandoRepuestos()) { <p role="status">Cargando repuestos...</p> }
     @if (errorRepuestos()) {
-      <div class="mensaje-error" role="alert">
+      <div class="mensaje-error mensaje-error--accion" role="alert">
         <p>No se pudieron cargar los repuestos. {{ errorRepuestos() }}</p>
-        <button type="button" class="btn btn-secundario" (click)="cargarRepuestos()" [disabled]="ocupadoRepuestos()">Reintentar repuestos</button>
+        <df-boton-icono icono="actualizar" etiqueta="Reintentar repuestos" [cargando]="cargandoRepuestos()" [deshabilitado]="ocupadoRepuestos()" (accion)="cargarRepuestos()" />
       </div>
     }
     @if (!cargandoRepuestos() && !errorRepuestos()) {

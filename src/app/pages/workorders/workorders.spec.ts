@@ -4,7 +4,7 @@ import { of, throwError } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PaginaWorkOrders } from './workorders';
-import { ServicioApi, OrdenTrabajo } from '../../services/api.service';
+import { ServicioApi, OrdenTrabajo, ServicioCatalogo } from '../../services/api.service';
 import { ServicioAutenticacion } from '../../services/auth.service';
 
 // jsdom no implementa completamente la API nativa de <dialog>.
@@ -39,9 +39,11 @@ describe('Formulario de órdenes reales', () => {
     const fixture = TestBed.createComponent(PaginaWorkOrders);
     fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
     const root: HTMLElement = fixture.nativeElement;
+    // Sin zone.js, whenStable no espera la carga: el botón existe antes, pero el dialog no.
     await vi.waitFor(() => {
       fixture.detectChanges();
-      expect(root.querySelector('#abrir-nueva-orden')).not.toBeNull();
+      expect(fixture.componentInstance['ocupado']()).toBe(false);
+      expect(root.querySelector('dialog')).not.toBeNull();
     });
     expect((root.querySelector('dialog') as HTMLDialogElement).open).toBe(false);
     (root.querySelector('#abrir-nueva-orden') as HTMLButtonElement).click();
@@ -121,7 +123,7 @@ describe('Repuestos y permisos de órdenes', () => {
     { id: 9, nombre: 'Conector', descripcion: null, stock: 0 },
   ];
   const api = {
-    listarServicios: vi.fn(() => of([])),
+    listarServicios: vi.fn(() => of<ServicioCatalogo[]>([])),
     listarOrdenes: vi.fn(() => of([orden])),
     listarRepuestos: vi.fn(() => of(catalogo)),
     consultarOrden: vi.fn(() => of(orden)),
@@ -151,11 +153,15 @@ describe('Repuestos y permisos de órdenes', () => {
   });
 
   it('muestra solo la tabla inicialmente y ubica Nueva orden a la derecha de Actualizar', async () => {
+    // Sin servicios el botón Nueva orden queda deshabilitado y el modal no abriría.
+    api.listarServicios.mockReturnValueOnce(of([{ id: 1, nombre: 'Mantención', descripcion: '', tarifa: 25000 }]));
     const fixture = TestBed.createComponent(PaginaWorkOrders);
     fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
     const root: HTMLElement = fixture.nativeElement;
-    const cabecera = Array.from(root.querySelectorAll('header button'));
-    expect(cabecera.map(b => b.textContent?.trim())).toEqual(['Actualizar', '+ Nueva orden']);
+    await vi.waitFor(() => { fixture.detectChanges(); expect(fixture.componentInstance['ocupado']()).toBe(false); });
+    const cabecera = Array.from(root.querySelectorAll<HTMLButtonElement>('header button'));
+    // Botones solo con icono: su nombre accesible está en aria-label.
+    expect(cabecera.map(b => b.getAttribute('aria-label'))).toEqual(['Actualizar', 'Nueva orden']);
     expect(root.querySelector('tbody tr')?.textContent).toContain('#42');
     const dialogo = root.querySelector('dialog') as HTMLDialogElement;
     expect(dialogo.open).toBe(false);
@@ -341,7 +347,8 @@ describe('Repuestos y permisos de órdenes', () => {
     api.actualizarRepuestosOrden.mockReturnValue(of({ ...actual, repuestos: [{ repuestoId: 3, cantidad: 3 }] }));
     const { pagina, fixture, root } = await preparar();
     pagina['ordenes'].set([actual]); fixture.detectChanges();
-    await pagina['editar'](42); fixture.detectChanges();
+    // ngModel escribe el valor en el input en un microtask posterior.
+    await pagina['editar'](42); fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
     expect(pagina['editandoAsignacion']()).toBe(true);
     expect(root.querySelector('#servicio')).not.toBeNull();
     expect(root.querySelector('#descripcion')).not.toBeNull();
@@ -357,7 +364,8 @@ describe('Repuestos y permisos de órdenes', () => {
       anteriores: [{ repuestoId: 3, cantidad: 2 }], nuevos: [{ repuestoId: 3, cantidad: 3 }],
     });
     expect(api.actualizarContactos).toHaveBeenCalledWith(42, { emailTecnico: 'nuevo@example.org' });
-    expect(api.actualizarOrden).not.toHaveBeenCalled();
+    // Desde 0fb6ddb una orden activa también guarda servicio, descripción y dirección.
+    expect(api.actualizarOrden).toHaveBeenCalledWith(42, { servicioId: 1, descripcion: 'Revisión', direccion: 'Calle 123' });
     expect(pagina['editandoId']()).toBeNull();
   });
 

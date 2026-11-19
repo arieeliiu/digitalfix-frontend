@@ -1,0 +1,35 @@
+.estado {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.estado--creada {
+  background: var(--df-superficie-alt);
+  color: var(--df-texto-secundario);
+  box-shadow: inset 0 0 0 1px var(--df-borde);
+}
+
+.estado--asignada {
+  background: var(--df-primario-suave);
+  color: var(--df-primario);
+}
+
+.estado--en-desplazamiento,
+.estado--en-ejecucion {
+  background: var(--df-advertencia-suave);
+  color: var(--df-advertencia);
+}
+
+.estado--cerrada {
+  background: var(--df-exito-suave);
+  color: var(--df-exito);
+}
+
+.estado--cancelada {
+  background: var(--df-peligro-suave);
+  color: var(--df-peligro-texto);
+}

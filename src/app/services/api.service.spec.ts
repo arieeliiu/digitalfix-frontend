@@ -84,6 +84,21 @@ describe('Conexión autenticada al Gateway', () => {
     creada.flush({ id: 1 }, { status: 201, statusText: 'Created' });
   });
 
+  it('en desarrollo acepta HTTP solo en localhost (proxy de Angular)', () => {
+    environment.apiGatewayUrl = 'http://localhost:4200';
+    TestBed.inject(ServicioApi).consultarPerfil().subscribe();
+    http.expectOne('http://localhost:4200/api/perfil').flush({ mensaje: 'ok' });
+  });
+
+  it.each(['http://digitalfix.example.test', 'http://192.168.1.10:8080'])(
+    'rechaza HTTP fuera de localhost: %s', (url) => {
+      environment.apiGatewayUrl = url;
+      const error = vi.fn();
+      TestBed.inject(ServicioApi).consultarPerfil().subscribe({ error });
+      expect(error).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringContaining('HTTPS') }));
+      http.expectNone(() => true);
+    });
+
   it('no llama al placeholder de la guía', () => {
     environment.apiGatewayUrl = 'https://<INVOKE-URL>';
     const api = TestBed.inject(ServicioApi);
