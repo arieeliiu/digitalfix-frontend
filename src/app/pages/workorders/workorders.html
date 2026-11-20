@@ -7,7 +7,7 @@
     </div>
   </header>
   @if (cargando()) { <p role="status">Cargando servicios y órdenes...</p> }
-  @if (error() && !modalOrdenAbierto() && !modalDetalleAbierto()) { <p class="mensaje-error" role="alert">{{ error() }}</p> }
+  @if (error() && !modalOrdenAbierto() && !modalDetalleAbierto() && !pendienteEliminar() && !pendienteCancelar()) { <p class="mensaje-error" role="alert">{{ error() }}</p> }
   @if (mensaje()) { <p role="status">{{ mensaje() }}</p> }
   @if (cargandoRepuestos()) { <p role="status">Cargando repuestos...</p> }
   @if (errorRepuestos()) {
@@ -52,10 +52,11 @@
                     <label [for]="'editar-repuesto-' + repuesto.id">{{ repuesto.nombre }}</label>
                     <p>Disponibles: {{ repuesto.stock }} · Asignados: {{ cantidadOriginal(repuesto.id) }}</p>
                   </div>
-                  <input type="number" [id]="'editar-repuesto-' + repuesto.id" [name]="'editar-repuesto-' + repuesto.id"
+                  <df-cantidad [idInput]="'editar-repuesto-' + repuesto.id" [nombre]="repuesto.nombre"
+                    [name]="'editar-repuesto-' + repuesto.id"
                     [ngModel]="cantidadesEdicion[repuesto.id] ?? 0"
                     (ngModelChange)="cantidadesEdicion[repuesto.id] = $event"
-                    min="0" [max]="repuesto.stock + cantidadOriginal(repuesto.id)" step="1" required />
+                    [max]="repuesto.stock + cantidadOriginal(repuesto.id)" required />
                 </div>
               }
             </section>
@@ -105,29 +106,13 @@
           <p class="sin-resultados">No hay órdenes activas.</p>
         }
         @if (ordenesCerradas().length > 0) {
-          <section class="grupo-cerradas" [class.grupo-cerradas--abierto]="cerradasAbiertas()">
-            <h3 class="grupo-cerradas__titulo">
-              <button
-                type="button"
-                id="boton-cerradas"
-                aria-controls="lista-cerradas"
-                [attr.aria-expanded]="cerradasAbiertas()"
-                (click)="cerradasAbiertas.set(!cerradasAbiertas())"
-              >
-                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6" /></svg>
-                Órdenes cerradas
-                <span class="grupo-cerradas__cantidad">{{ ordenesCerradas().length }}</span>
-              </button>
-            </h3>
-            <!-- Siempre en el DOM para animar la altura; plegado queda inerte. -->
-            <div class="grupo-cerradas__panel" [inert]="!cerradasAbiertas()">
-              <ul id="lista-cerradas" class="lista-ordenes" aria-labelledby="boton-cerradas">
-                @for (orden of ordenesCerradas(); track orden.id) {
-                  <li><ng-container *ngTemplateOutlet="itemOrden; context: { $implicit: orden }" /></li>
-                }
-              </ul>
-            </div>
-          </section>
+          <app-grupo-plegable titulo="Órdenes cerradas" idBoton="boton-cerradas" [cantidad]="ordenesCerradas().length">
+            <ul id="lista-cerradas" class="lista-ordenes" aria-labelledby="boton-cerradas">
+              @for (orden of ordenesCerradas(); track orden.id) {
+                <li><ng-container *ngTemplateOutlet="itemOrden; context: { $implicit: orden }" /></li>
+              }
+            </ul>
+          </app-grupo-plegable>
         }
       }
     }
@@ -140,32 +125,63 @@
         (alternar)="alternarOrden(orden.id)"
       >
         <div class="acciones-orden">
-          <button type="button" class="btn btn-secundario" (click)="consultar(orden.id)" [disabled]="ocupado()">Consultar</button>
+          <!-- Si toca asignar técnico, el botón lo dice; si no, abre el detalle para consultar. -->
+          <button type="button" class="btn btn-secundario" (click)="consultar(orden.id)" [disabled]="ocupado()">
+            {{ porAsignar(orden) ? 'Asignar' : 'Consultar' }}
+          </button>
           @if (puedeEditar(orden)) {
             <button type="button" class="btn btn-secundario" (click)="editar(orden.id)" [disabled]="ocupado()">Editar</button>
           }
+          @if (puedeCancelar(orden)) {
+            <button type="button" class="btn btn-cancelar" (click)="solicitarCancelacion(orden)" [disabled]="ocupado()">Cancelar orden</button>
+          }
           @if (puedeEliminar(orden)) {
-            <button type="button" class="btn btn-peligro" (click)="solicitarEliminacion(orden)" [disabled]="ocupado()">Eliminar</button>
+            <df-boton-icono class="accion-eliminar" icono="eliminar" [etiqueta]="'Eliminar orden #' + orden.id"
+              [deshabilitado]="ocupado()" (accion)="solicitarEliminacion(orden)" />
           }
         </div>
       </app-orden-desplegable>
     </ng-template>
-    @if (pendienteEliminar(); as orden) {
-      <section class="formulario-orden" aria-labelledby="confirmar-eliminacion">
-        <h2 id="confirmar-eliminacion">Eliminar orden #{{ orden.id }}</h2>
-        <p>Se eliminará permanentemente esta orden. Esta acción no se puede deshacer.</p>
-        <div class="acciones-orden">
-          <button type="button" class="btn btn-peligro" (click)="eliminar()" [disabled]="ocupado()">Confirmar eliminación</button>
-          <button type="button" class="btn btn-secundario" (click)="pendienteEliminar.set(null)" [disabled]="ocupado()">Conservar orden</button>
+    <!-- Confirmación de eliminación como ventana emergente, igual que la de cancelar. -->
+    <dialog #modalEliminacion class="modal-orden modal-confirmacion" aria-modal="true" aria-labelledby="confirmar-eliminacion"
+      aria-describedby="texto-eliminacion" (cancel)="alCancelarEliminacion($event)">
+      @if (pendienteEliminar(); as orden) {
+        <div class="modal-orden__contenido">
+          <h2 id="confirmar-eliminacion">¿Eliminar la orden #{{ orden.id }}?</h2>
+          @if (error()) { <p class="mensaje-error" role="alert">{{ error() }}</p> }
+          <p id="texto-eliminacion">Se borrará permanentemente. Esta acción no se puede deshacer.</p>
+          <div class="acciones-modal">
+            <button type="button" class="btn btn-secundario" (click)="cerrarEliminacion()" [disabled]="guardando()">Conservar orden</button>
+            <button type="button" class="btn btn-peligro" (click)="eliminar()" [disabled]="ocupado()">
+              {{ guardando() ? 'Eliminando...' : 'Confirmar eliminación' }}
+            </button>
+          </div>
         </div>
-      </section>
-    }
+      }
+    </dialog>
     @if (consultando()) { <p role="status">Consultando orden...</p> }
+    <!-- Confirmación de cancelación: se abre desde la lista o sobre el detalle. -->
+    <dialog #modalCancelacion class="modal-orden modal-confirmacion" aria-modal="true" aria-labelledby="titulo-cancelacion"
+      aria-describedby="texto-cancelacion" (cancel)="alCancelarCancelacion($event)">
+      @if (pendienteCancelar(); as orden) {
+        <div class="modal-orden__contenido">
+          <h2 id="titulo-cancelacion">¿Cancelar la orden #{{ orden.id }}?</h2>
+          @if (error()) { <p class="mensaje-error" role="alert">{{ error() }}</p> }
+          <p id="texto-cancelacion">Esta acción no se puede deshacer.</p>
+          <div class="acciones-modal">
+            <button type="button" class="btn btn-secundario" (click)="cerrarCancelacion()" [disabled]="guardando()">Volver</button>
+            <button type="button" id="confirmar-cancelacion" class="btn btn-peligro" (click)="confirmarCancelacion()" [disabled]="guardando()">
+              {{ guardando() ? 'Cancelando...' : 'Sí, cancelar orden' }}
+            </button>
+          </div>
+        </div>
+      }
+    </dialog>
     <dialog #modalDetalle class="modal-orden modal-detalle" aria-modal="true" aria-labelledby="detalle-orden" (cancel)="alCancelarDetalle($event)">
       @if (seleccionada(); as orden) {
       <div class="modal-orden__contenido">
         <div class="modal-detalle__encabezado">
-          <h2 id="detalle-orden">Orden #{{ orden.id }}</h2>
+          <h2 id="detalle-orden">{{ nombreServicio(orden.servicioId) }} <span class="detalle-numero">#{{ orden.id }}</span></h2>
           <button type="button" class="btn btn-secundario" (click)="cerrarDetalle()" [disabled]="guardando()" aria-label="Cerrar detalle de orden">Cerrar</button>
         </div>
         @if (error()) { <p class="mensaje-error" role="alert">{{ error() }}</p> }
@@ -173,34 +189,29 @@
         @if (errorRepuestos()) {
           <p class="mensaje-error" role="alert">No se pudieron cargar los repuestos. {{ errorRepuestos() }}</p>
         }
-        <p>{{ orden.descripcion }}</p><p>Dirección: {{ orden.direccion }}</p>
-        <p>Estado: {{ nombreEstado(orden.estado) }}</p><p>Servicio: #{{ orden.servicioId }}</p>
-        @if (orden.tecnicoId) { <p>Técnico: {{ orden.tecnicoId }}</p> }
-        <p class="contacto">Correo de contacto: {{ orden.emailContacto || 'No registrado' }}</p>
-        <p class="contacto">Correo del técnico: {{ orden.emailTecnico || 'No registrado' }}</p>
-        @if (orden.repuestos?.length) {
-          <h3>Repuestos utilizados</h3>
-          <ul>
-            @for (repuesto of orden.repuestos; track repuesto.repuestoId) {
-              <li>{{ nombreRepuesto(repuesto.repuestoId) }} — {{ repuesto.cantidad }} {{ repuesto.cantidad === 1 ? 'unidad' : 'unidades' }}</li>
+        <!-- Dos columnas que se desplazan por separado: orden con estado y técnico, y repuestos.
+             El pie con el botón queda fijo para no tener que hacer scroll hasta él. -->
+        <form #formEstado="ngForm" class="detalle-formulario" (ngSubmit)="cambiarEstado()">
+          <div class="detalle-columnas">
+          <section class="columna" aria-labelledby="detalle-orden">
+            <dl class="detalle-datos">
+              <div class="detalle-datos__ancho"><dt>Descripción</dt><dd class="detalle-descripcion">{{ orden.descripcion }}</dd></div>
+              <div><dt>Estado</dt><dd><df-estado-orden [estado]="orden.estado" /></dd></div>
+              <div><dt>Dirección</dt><dd>{{ orden.direccion }}</dd></div>
+              <div><dt>Correo de contacto</dt><dd class="contacto">{{ orden.emailContacto || 'No registrado' }}</dd></div>
+              <div><dt>Creada</dt><dd>{{ orden.fechaCreacion | date:'dd/MM/yyyy HH:mm' }}</dd></div>
+              @if (orden.fechaActualizacion) {
+                <div><dt>Última actualización</dt><dd>{{ orden.fechaActualizacion | date:'dd/MM/yyyy HH:mm' }}</dd></div>
+              }
+            </dl>
+            @if (puedeGestionarEstado() && estadosDisponibles().length > 0) {
+              <app-selector-estado [estados]="estadosDisponibles()" [deshabilitado]="ocupado()" [(valor)]="nuevoEstado" />
             }
-          </ul>
-        }
-        @if (orden.fechaActualizacion) {
-          <p>Última actualización: {{ orden.fechaActualizacion | date:'dd/MM/yyyy HH:mm' }}</p>
-        }
-        @if (puedeGestionarEstado() && estadosDisponibles().length > 0) {
-          <form #formEstado="ngForm" (ngSubmit)="cambiarEstado()">
-            <fieldset [disabled]="ocupado()">
-              <label for="estado">Nuevo estado</label>
-              <select id="estado" name="estado" [(ngModel)]="nuevoEstado" required>
-                <option value="">Selecciona un estado</option>
-                @for (estado of estadosDisponibles(); track estado) {
-                  <option [value]="estado">{{ nombreEstado(estado) }}</option>
-                }
-              </select>
-              @if (nuevoEstado === 'ASIGNADA') {
-                <h3>Asignar técnico</h3>
+
+            <section class="subseccion" aria-labelledby="columna-tecnico">
+            <h3 id="columna-tecnico">Asignar técnico</h3>
+            @if (asignando()) {
+              <fieldset [disabled]="ocupado()">
                 <label for="tecnico">Identificador del técnico</label>
                 <input id="tecnico" name="tecnico" [(ngModel)]="tecnicoId" required maxlength="100" />
                 <label for="email-tecnico">Correo del técnico</label>
@@ -208,40 +219,68 @@
                 @if (correoAsignado.invalid && correoAsignado.dirty) {
                   <p class="mensaje-error" role="alert">Ingresa un correo válido de hasta 254 caracteres.</p>
                 }
-                <section class="repuestos" aria-labelledby="titulo-repuestos">
-                  <h3 id="titulo-repuestos">Repuestos para la asignación</h3>
-                  <p>Indica la cantidad necesaria. Deja todas en 0 si la orden no necesita repuestos.</p>
-                  @if (errorRepuestos()) {
-                    <p>Catálogo no disponible. Reintenta la carga si necesitas repuestos.</p>
-                  } @else if (!cargandoRepuestos() && repuestos().length === 0) {
-                    <p>No hay repuestos disponibles.</p>
-                  }
-                  @for (repuesto of repuestos(); track repuesto.id) {
-                    <div class="repuesto">
-                      <div>
-                        <label [for]="'repuesto-' + repuesto.id">{{ repuesto.nombre }}</label>
-                        @if (repuesto.descripcion) { <p>{{ repuesto.descripcion }}</p> }
-                        <p [id]="'stock-' + repuesto.id">Stock disponible: {{ repuesto.stock }}</p>
-                      </div>
-                      <div>
-                        <label [for]="'repuesto-' + repuesto.id">Cantidad</label>
-                        <input type="number" [id]="'repuesto-' + repuesto.id" [name]="'repuesto-' + repuesto.id"
-                          [ngModel]="cantidades[repuesto.id] === undefined ? 0 : cantidades[repuesto.id]"
-                          (ngModelChange)="cantidades[repuesto.id] = $event"
-                          min="0" [max]="repuesto.stock" step="1" required [disabled]="repuesto.stock === 0"
-                          [attr.aria-describedby]="'stock-' + repuesto.id" />
-                      </div>
-                    </div>
-                  }
-                </section>
+              </fieldset>
+            } @else {
+              <dl class="detalle-datos">
+                <div><dt>Técnico</dt><dd>{{ orden.tecnicoId || 'Sin técnico asignado' }}</dd></div>
+                <div><dt>Correo del técnico</dt><dd class="contacto">{{ orden.emailTecnico || 'No registrado' }}</dd></div>
+              </dl>
+              @if (puedeGestionarEstado() && estadosDisponibles().includes('ASIGNADA')) {
+                <p class="columna-ayuda">Elige el estado «Asignada» para asignar un técnico.</p>
               }
-              <button type="submit" class="btn btn-primario" [disabled]="formEstado.invalid || !nuevoEstado || (nuevoEstado === 'ASIGNADA' && !tecnicoId.trim())">{{ nuevoEstado === 'ASIGNADA' ? 'Asignar técnico' : 'Cambiar estado' }}</button>
-            </fieldset>
-          </form>
-        }
-        <div class="acciones-modal">
-          <button type="button" class="btn btn-secundario" (click)="cerrarDetalle()" [disabled]="guardando()">Cerrar detalle</button>
-        </div>
+            }
+            </section>
+          </section>
+
+          <section class="columna" aria-labelledby="titulo-repuestos">
+            <h3 id="titulo-repuestos">{{ asignando() ? 'Asignar repuestos' : 'Repuestos utilizados' }}</h3>
+            @if (asignando()) {
+              <fieldset [disabled]="ocupado()">
+                <p class="columna-ayuda">Indica la cantidad necesaria. Deja todas en 0 si la orden no necesita repuestos.</p>
+                @if (errorRepuestos()) {
+                  <p>Catálogo no disponible. Pulsa Actualizar si necesitas repuestos.</p>
+                } @else if (!cargandoRepuestos() && repuestos().length === 0) {
+                  <p>No hay repuestos disponibles.</p>
+                }
+                @for (repuesto of repuestos(); track repuesto.id) {
+                  <div class="repuesto">
+                    <div>
+                      <label [for]="'repuesto-' + repuesto.id">{{ repuesto.nombre }}</label>
+                      @if (repuesto.descripcion) { <p>{{ repuesto.descripcion }}</p> }
+                      <p [id]="'stock-' + repuesto.id">Stock disponible: {{ repuesto.stock }}</p>
+                    </div>
+                    <df-cantidad [idInput]="'repuesto-' + repuesto.id" [nombre]="repuesto.nombre"
+                      [name]="'repuesto-' + repuesto.id"
+                      [ngModel]="cantidades[repuesto.id] === undefined ? 0 : cantidades[repuesto.id]"
+                      (ngModelChange)="cantidades[repuesto.id] = $event"
+                      [max]="repuesto.stock" required [disabled]="repuesto.stock === 0"
+                      [describedBy]="'stock-' + repuesto.id" />
+                  </div>
+                }
+              </fieldset>
+            } @else if (orden.repuestos?.length) {
+              <ul class="lista-repuestos">
+                @for (repuesto of orden.repuestos; track repuesto.repuestoId) {
+                  <li>{{ nombreRepuesto(repuesto.repuestoId) }} — {{ repuesto.cantidad }} {{ repuesto.cantidad === 1 ? 'unidad' : 'unidades' }}</li>
+                }
+              </ul>
+            } @else {
+              <p class="columna-ayuda">Sin repuestos asignados.</p>
+            }
+          </section>
+          </div>
+
+          @if (puedeCancelar(orden) || (puedeGestionarEstado() && estadosDisponibles().length > 0)) {
+            <div class="detalle-pie">
+              @if (puedeCancelar(orden)) {
+                <button type="button" class="btn btn-cancelar" (click)="solicitarCancelacion(orden)" [disabled]="ocupado()">Cancelar orden</button>
+              }
+              @if (estadosDisponibles().length > 0) {
+              <button type="submit" class="btn btn-primario" [disabled]="ocupado() || formEstado.invalid || !nuevoEstado || (nuevoEstado === 'ASIGNADA' && !tecnicoId.trim())">{{ nuevoEstado === 'ASIGNADA' ? 'Asignar técnico' : 'Cambiar estado' }}</button>
+              }
+            </div>
+          }
+        </form>
       </div>
       }
     </dialog>

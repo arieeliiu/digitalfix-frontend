@@ -1,0 +1,76 @@
+:host {
+  display: block;
+  margin-top: var(--df-esp-5);
+}
+
+.titulo {
+  margin: 0;
+
+  button {
+    display: flex;
+    align-items: center;
+    gap: var(--df-esp-2);
+    padding: var(--df-esp-2) 0;
+    border: 0;
+    background: none;
+    color: var(--df-texto-secundario);
+    font: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+
+    &:focus-visible {
+      outline: 3px solid var(--df-primario);
+      outline-offset: 2px;
+    }
+  }
+
+  svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: transform 0.25s ease;
+  }
+}
+
+.cantidad {
+  padding: 0 var(--df-esp-2);
+  border-radius: 999px;
+  background: var(--df-exito-suave);
+  color: var(--df-exito);
+  font-size: 12px;
+}
+
+// Altura animada con grid 0fr → 1fr, igual que cada orden desplegable.
+.panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.3s ease;
+}
+
+.recorte {
+  min-height: 0;
+  overflow: hidden;
+  padding-top: var(--df-esp-2);
+}
+
+:host(.abierto) {
+  .panel {
+    grid-template-rows: 1fr;
+  }
+
+  .titulo svg {
+    transform: rotate(90deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel,
+  .titulo svg {
+    transition: none;
+  }
+}

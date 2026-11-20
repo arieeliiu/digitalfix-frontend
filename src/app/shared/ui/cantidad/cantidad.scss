@@ -1,0 +1,85 @@
+:host {
+  display: inline-flex;
+}
+
+// Un solo bloque redondeado dividido en tres: − | número | +.
+.cantidad {
+  display: inline-grid;
+  grid-template-columns: 36px 52px 36px;
+  height: 36px;
+  overflow: hidden;
+  border: 1px solid var(--df-borde-control);
+  border-radius: var(--df-radio-md);
+  background: var(--df-superficie);
+
+  &:focus-within {
+    border-color: var(--df-primario);
+    box-shadow: 0 0 0 3px var(--df-primario-suave);
+  }
+}
+
+.paso {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--df-texto);
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--df-fondo);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--df-primario);
+    outline-offset: -2px;
+  }
+
+  &:disabled {
+    color: var(--df-borde-control);
+    cursor: not-allowed;
+  }
+
+  svg {
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.5;
+    stroke-linecap: round;
+  }
+}
+
+.valor {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-inline: 1px solid var(--df-borde-control);
+  border-radius: 0;
+  background: transparent;
+  color: var(--df-texto);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: center;
+  appearance: textfield;
+
+  // Sin las flechas nativas: ya están − y +.
+  &::-webkit-inner-spin-button,
+  &::-webkit-outer-spin-button {
+    margin: 0;
+    appearance: none;
+  }
+
+  &:focus {
+    outline: none;
+  }
+}
+
+.cantidad--deshabilitada {
+  background: var(--df-fondo);
+  opacity: 0.6;
+}

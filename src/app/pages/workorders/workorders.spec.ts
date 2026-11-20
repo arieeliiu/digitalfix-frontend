@@ -66,14 +66,14 @@ describe('Formulario de órdenes reales', () => {
     expect(api.crearOrden).toHaveBeenCalledWith({ servicioId: 1, descripcion: 'Revisión', direccion: 'Calle 123', emailContacto: 'cliente@example.org' });
     expect(root.textContent).toContain('Orden #42 creada correctamente.');
     expect((root.querySelector('dialog') as HTMLDialogElement).open).toBe(false);
-    expect((root.querySelectorAll('dialog')[1] as HTMLDialogElement).open).toBe(false);
+    expect((root.querySelector('dialog.modal-detalle')! as HTMLDialogElement).open).toBe(false);
     expect(fixture.componentInstance['seleccionada']()).toBeNull();
     expect(root.querySelector('app-orden-desplegable')?.textContent).toContain('Creada');
     const consultar = Array.from(root.querySelectorAll('button')).find(b => b.textContent?.trim() === 'Consultar')!;
     consultar.click(); await fixture.whenStable(); fixture.detectChanges();
     expect(api.consultarOrden).toHaveBeenCalledWith(42);
-    expect((root.querySelectorAll('dialog')[1] as HTMLDialogElement).open).toBe(true);
-    expect(root.textContent).toContain('Dirección: Calle 123');
+    expect((root.querySelector('dialog.modal-detalle')! as HTMLDialogElement).open).toBe(true);
+    expect(root.querySelector('dialog.modal-detalle')!.textContent).toContain('Calle 123');
   });
 
   it('conserva el formulario y no inventa una orden cuando el backend rechaza', async () => {
@@ -238,7 +238,7 @@ describe('Repuestos y permisos de órdenes', () => {
   });
 
   it.each([
-    ['CREADA', 'CANCELADA'], ['ASIGNADA', 'EN_DESPLAZAMIENTO'],
+    ['ASIGNADA', 'EN_DESPLAZAMIENTO'],
     ['EN_DESPLAZAMIENTO', 'EN_EJECUCION'], ['EN_EJECUCION', 'CERRADA'],
   ] as const)('cambia %s a %s sin enviar repuestos ni técnico', async (estado, siguiente) => {
     const { pagina } = await preparar();
@@ -253,7 +253,7 @@ describe('Repuestos y permisos de órdenes', () => {
     rol = valor;
     const { pagina, root } = await preparar();
     const botones = Array.from(root.querySelectorAll('button')).map(b => b.textContent?.trim());
-    expect(botones).not.toContain('Editar'); expect(botones).not.toContain('Eliminar');
+    expect(botones).not.toContain('Editar'); expect(root.querySelector('[aria-label^="Eliminar orden"]')).toBeNull();
     expect(root.querySelector('h1')?.textContent).toBe('Órdenes de trabajo');
     await pagina['editar'](42);
     expect(pagina['editandoId']()).toBeNull();
@@ -268,7 +268,7 @@ describe('Repuestos y permisos de órdenes', () => {
     expect(api.listarRepuestos).not.toHaveBeenCalled();
     expect(root.querySelector('#estado')).toBeNull();
     const botones = Array.from(root.querySelectorAll('button')).map(b => b.textContent?.trim());
-    expect(botones).toContain('Editar'); expect(botones).toContain('Eliminar');
+    expect(botones).toContain('Editar'); expect(root.querySelector('[aria-label^="Eliminar orden"]')).not.toBeNull();
     await pagina['cambiarEstado'](); expect(api.cambiarEstadoOrden).not.toHaveBeenCalled();
     pagina['seleccionada'].set({ ...orden, repuestos: [{ repuestoId: 3, cantidad: 1 }] });
     fixture.detectChanges(); expect(root.textContent).toContain('Repuesto #3 — 1 unidad');
@@ -388,7 +388,7 @@ describe('Repuestos y permisos de órdenes', () => {
     expect(root.querySelector('#lista-cerradas #resumen-orden-50')).not.toBeNull();
 
     const boton = root.querySelector('#boton-cerradas') as HTMLButtonElement;
-    const panel = root.querySelector('.grupo-cerradas__panel') as HTMLElement & { inert: boolean };
+    const panel = root.querySelector('#boton-cerradas-panel') as HTMLElement & { inert: boolean };
     expect(boton.textContent).toContain('Órdenes cerradas');
     expect(boton.getAttribute('aria-expanded')).toBe('false');
     expect(panel.inert).toBe(true);
@@ -437,9 +437,8 @@ describe('Repuestos y permisos de órdenes', () => {
     pagina['seleccionada'].set({ ...orden, estado: 'EN_EJECUCION' });
     fixture.detectChanges();
     expect(root.querySelector('app-orden-desplegable')?.textContent).toContain('En desplazamiento');
-    expect(root.querySelector('.modal-detalle')?.textContent).toContain('EN EJECUCIÓN');
-    expect(pagina['nombreEstado']('EN_DESPLAZAMIENTO')).toBe('EN DESPLAZAMIENTO');
-    expect(pagina['nombreEstado']('EN_EJECUCION')).toBe('EN EJECUCIÓN');
+    expect(root.querySelector('.modal-detalle')?.textContent).toContain('En ejecución');
+    expect(pagina['seleccionada']()?.estado).toBe('EN_EJECUCION');
   });
 
   it.each(['ASIGNADA', 'EN_DESPLAZAMIENTO', 'EN_EJECUCION'] as const)
@@ -486,9 +485,151 @@ describe('Repuestos y permisos de órdenes', () => {
     expect(api.actualizarRepuestosOrden).not.toHaveBeenCalled();
   });
 
+  it('el detalle tiene un solo botón Cerrar, en gris, y dos columnas: orden con técnico, y repuestos', async () => {
+    const { pagina, fixture, root } = await preparar();
+    const dialogo = root.querySelector('dialog.modal-detalle')!;
+    const cerrar = Array.from(dialogo.querySelectorAll('button')).filter(b => /cerrar/i.test(b.textContent ?? ''));
+    expect(cerrar).toHaveLength(1);
+    expect(cerrar[0].classList).toContain('btn-secundario');
+    expect(cerrar[0].getAttribute('aria-label')).toBe('Cerrar detalle de orden');
+    const columnas = Array.from(dialogo.querySelectorAll('.detalle-columnas > .columna'));
+    expect(columnas).toHaveLength(2);
+    expect(Array.from(columnas[0].querySelectorAll('h3')).map(h => h.textContent?.trim())).toEqual(['Asignar técnico']);
+    // El título del detalle es el servicio; el número queda como dato secundario.
+    pagina['servicios'].set([{ id: 1, nombre: 'Mantención', descripcion: '', tarifa: 25000 }]); fixture.detectChanges();
+    expect(dialogo.querySelector('#detalle-orden')?.textContent?.replace(/\s+/g, ' ').trim()).toBe('Mantención #42');
+    expect(columnas[0].querySelector('#estado')).not.toBeNull();
+    expect(columnas[0].querySelector('#tecnico')).not.toBeNull();
+    expect(columnas[1].querySelector('h3')?.textContent?.trim()).toBe('Asignar repuestos');
+    expect(columnas[1].querySelector('#repuesto-3')).not.toBeNull();
+    // El botón de guardar queda fuera de las columnas desplazables, siempre visible.
+    expect(dialogo.querySelector('.detalle-pie button[type="submit"]')?.closest('.detalle-columnas')).toBeNull();
+  });
+
+  it('Eliminar abre una ventana de confirmación y la cierra al eliminar o conservar', async () => {
+    const { pagina, fixture, root } = await preparar();
+    pagina['cerrarDetalle'](); fixture.detectChanges();
+    const dialogo = root.querySelector('dialog.modal-confirmacion[aria-labelledby="confirmar-eliminacion"]') as HTMLDialogElement;
+    expect(dialogo.open).toBe(false);
+
+    pagina['solicitarEliminacion'](orden); fixture.detectChanges();
+    expect(dialogo.open).toBe(true);
+    expect(dialogo.querySelector('#confirmar-eliminacion')?.textContent).toContain('¿Eliminar la orden #42?');
+
+    (Array.from(dialogo.querySelectorAll('button')).find(b => b.textContent?.trim() === 'Conservar orden')!).click();
+    fixture.detectChanges();
+    expect(dialogo.open).toBe(false);
+    expect(pagina['pendienteEliminar']()).toBeNull();
+    expect(api.eliminarOrden).not.toHaveBeenCalled();
+
+    pagina['solicitarEliminacion'](orden); fixture.detectChanges();
+    await pagina['eliminar'](); fixture.detectChanges();
+    expect(api.eliminarOrden).toHaveBeenCalledWith(42);
+    expect(dialogo.open).toBe(false);
+    expect(root.textContent).toContain('Orden #42 eliminada correctamente.');
+  });
+
+  it('Cancelar orden desde la lista pide confirmación y envía CANCELADA', async () => {
+    const { pagina, fixture, root } = await preparar();
+    pagina['cerrarDetalle'](); pagina['ordenes'].set([orden]); fixture.detectChanges();
+    api.cambiarEstadoOrden.mockReturnValue(of({ ...orden, estado: 'CANCELADA' }));
+    const confirmacion = root.querySelector('dialog[aria-labelledby="titulo-cancelacion"]') as HTMLDialogElement;
+    const botonCancelar = () => Array.from(root.querySelectorAll('app-orden-desplegable button'))
+      .find(b => b.textContent?.trim() === 'Cancelar orden') as HTMLButtonElement | undefined;
+
+    botonCancelar()!.click(); fixture.detectChanges();
+    expect(confirmacion.open).toBe(true);
+    expect(confirmacion.textContent).toContain('¿Cancelar la orden #42?');
+    expect(api.cambiarEstadoOrden).not.toHaveBeenCalled();
+
+    // Volver cierra la confirmación sin cambiar nada.
+    (Array.from(confirmacion.querySelectorAll('button')).find(b => b.textContent?.trim() === 'Volver')!).click();
+    fixture.detectChanges();
+    expect(confirmacion.open).toBe(false);
+    expect(api.cambiarEstadoOrden).not.toHaveBeenCalled();
+
+    botonCancelar()!.click(); fixture.detectChanges();
+    await pagina['confirmarCancelacion'](); fixture.detectChanges();
+    expect(api.cambiarEstadoOrden).toHaveBeenCalledWith(42, { status: 'CANCELADA' });
+    expect(confirmacion.open).toBe(false);
+    expect(pagina['ordenes']()[0].estado).toBe('CANCELADA');
+    expect(root.textContent).toContain('Orden #42 cancelada.');
+    // Ya cancelada, la orden no vuelve a ofrecer cancelarse.
+    expect(botonCancelar()).toBeUndefined();
+  });
+
+  it('el detalle ofrece Cancelar orden en el pie, separado de Cambiar estado', async () => {
+    const { pagina, root } = await preparar();
+    const pie = root.querySelector('dialog.modal-detalle .detalle-pie')!;
+    const textos = Array.from(pie.querySelectorAll('button')).map(b => b.textContent?.trim());
+    expect(textos).toEqual(['Cancelar orden', 'Asignar técnico']);
+    (pie.querySelector('.btn-cancelar') as HTMLButtonElement).click();
+    expect((root.querySelector('dialog[aria-labelledby="titulo-cancelacion"]') as HTMLDialogElement).open).toBe(true);
+    expect(pagina['pendienteCancelar']()?.id).toBe(42);
+  });
+
+  it('Cliente no ve Cancelar orden ni puede solicitarla', async () => {
+    rol = 'Cliente'; oid = 'cliente';
+    const { pagina, fixture, root } = await preparar();
+    pagina['ordenes'].set([orden]); fixture.detectChanges();
+    expect(Array.from(root.querySelectorAll('button')).some(b => b.textContent?.trim() === 'Cancelar orden')).toBe(false);
+    pagina['solicitarCancelacion'](orden);
+    expect(pagina['pendienteCancelar']()).toBeNull();
+    rol = 'Admin';
+  });
+
+  it('el botón principal dice Asignar en órdenes creadas y Consultar en las demás', async () => {
+    const { pagina, fixture, root } = await preparar();
+    pagina['cerrarDetalle']();
+    pagina['ordenes'].set([orden, { ...orden, id: 43, estado: 'ASIGNADA', tecnicoId: 'tecnico-01' }]); fixture.detectChanges();
+    const textos = (id: number) => Array.from(root.querySelectorAll(`#detalle-orden-${id} button`)).map(b => b.textContent?.trim());
+    expect(textos(42)).toContain('Asignar');
+    expect(textos(42)).not.toContain('Consultar');
+    expect(textos(43)).toContain('Consultar');
+  });
+
+  it('las cantidades de repuestos usan el selector − / número / +', async () => {
+    const { pagina, fixture, root } = await preparar();
+    const fila = root.querySelector('#repuesto-3')!.closest('df-cantidad')!;
+    const sumar = fila.querySelector('button[aria-label^="Agregar una unidad"]') as HTMLButtonElement;
+    sumar.click(); fixture.detectChanges();
+    expect(pagina['cantidades'][3]).toBe(1);
+    expect((root.querySelector('#repuesto-3') as HTMLInputElement).value).toBe('1');
+  });
+
+  it('Eliminar es un icono de basurero con nombre accesible, solo en órdenes eliminables', async () => {
+    const { pagina, fixture, root } = await preparar();
+    pagina['cerrarDetalle']();
+    pagina['ordenes'].set([orden, { ...orden, id: 43, estado: 'ASIGNADA', tecnicoId: 'tecnico-01' }]); fixture.detectChanges();
+    const basurero = root.querySelector('button[aria-label="Eliminar orden #42"]') as HTMLButtonElement;
+    expect(basurero).not.toBeNull();
+    expect(basurero.textContent?.trim()).toBe('');
+    expect(basurero.classList).toContain('boton--eliminar');
+    expect(root.querySelector('button[aria-label="Eliminar orden #43"]')).toBeNull();
+    basurero.click(); fixture.detectChanges();
+    expect(pagina['pendienteEliminar']()?.id).toBe(42);
+  });
+
+  it('el nuevo estado se elige con tarjetas y la elegida queda marcada', async () => {
+    const { pagina, fixture, root } = await preparar();
+    // Campo plano: en zoneless hay que marcar la vista para que se vuelva a revisar.
+    pagina['nuevoEstado'] = ''; fixture.changeDetectorRef.markForCheck(); fixture.detectChanges();
+    const opciones = Array.from(root.querySelectorAll('#estado .opcion')) as HTMLLabelElement[];
+    // Cancelar ya no es una tarjeta: tiene su propio botón.
+    expect(opciones.map(o => o.querySelector('.nombre')?.textContent?.trim())).toEqual(['Asignada']);
+    expect(root.querySelector('#estado .opcion--elegida')).toBeNull();
+    expect(root.querySelector('#tecnico')).toBeNull();
+
+    (opciones[0].querySelector('input') as HTMLInputElement).click(); fixture.detectChanges();
+    expect(pagina['nuevoEstado']).toBe('ASIGNADA');
+    expect(opciones[0].classList).toContain('opcion--elegida');
+    expect((opciones[0].querySelector('input') as HTMLInputElement).checked).toBe(true);
+    expect(root.querySelector('#tecnico')).not.toBeNull();
+  });
+
   it('Consultar abre un modal y no ofrece editar el correo del cliente allí', async () => {
     const { pagina, fixture, root } = await preparar();
-    const dialogo = root.querySelectorAll('dialog')[1] as HTMLDialogElement;
+    const dialogo = root.querySelector('dialog.modal-detalle')! as HTMLDialogElement;
     expect(dialogo.open).toBe(true);
     expect(root.querySelector('#detalle-orden')?.textContent).toContain('#42');
     expect(root.querySelector('#contacto-cliente')).toBeNull();
@@ -506,7 +647,7 @@ describe('Repuestos y permisos de órdenes', () => {
   it('Admin ve las acciones y edita una orden ajena conservando el propietario', async () => {
     const { pagina, fixture, root } = await preparar();
     const botones = Array.from(root.querySelectorAll('button')).map(b => b.textContent?.trim());
-    expect(botones).toContain('Editar'); expect(botones).toContain('Eliminar');
+    expect(botones).toContain('Editar'); expect(root.querySelector('[aria-label^="Eliminar orden"]')).not.toBeNull();
     await pagina['editar'](42); fixture.detectChanges(); await fixture.whenStable();
     expect(root.querySelector('#email-contacto')).not.toBeNull();
     pagina['descripcion'] = 'Cambio de Admin';
@@ -515,11 +656,24 @@ describe('Repuestos y permisos de órdenes', () => {
     expect(api.actualizarContactos).not.toHaveBeenCalled();
   });
 
-  it.each(['CREADA', 'CANCELADA'] as const)('Admin elimina una orden ajena %s', async estado => {
+  it('Admin elimina una orden ajena CREADA sin técnico', async () => {
     const { pagina } = await preparar();
-    pagina['solicitarEliminacion']({ ...orden, estado });
+    pagina['solicitarEliminacion']({ ...orden, estado: 'CREADA', tecnicoId: null });
     await pagina['eliminar']();
     expect(api.eliminarOrden).toHaveBeenCalledWith(42);
+  });
+
+  it.each([
+    { caso: 'CANCELADA', actual: { estado: 'CANCELADA' as const, tecnicoId: null } },
+    { caso: 'CREADA con técnico', actual: { estado: 'CREADA' as const, tecnicoId: 'tecnico-01' } },
+  ])('no se ofrece eliminar una orden $caso: se deja como cancelada', async ({ actual }) => {
+    const { pagina } = await preparar();
+    const candidata = { ...orden, ...actual };
+    expect(pagina['puedeEliminar'](candidata)).toBe(false);
+    pagina['solicitarEliminacion'](candidata);
+    expect(pagina['pendienteEliminar']()).toBeNull();
+    await pagina['eliminar']();
+    expect(api.eliminarOrden).not.toHaveBeenCalled();
   });
 
   it.each(['Admin', 'Operador', 'Cliente'])('%s conserva restricciones de estado incluso en llamadas directas', async valor => {
@@ -534,10 +688,8 @@ describe('Repuestos y permisos de órdenes', () => {
       await pagina['editar'](42);
       expect(pagina['editandoId']()).toBe(puedeCorregir ? 42 : null);
       if (puedeCorregir) pagina['cancelarEdicion']();
-      if (estado !== 'CANCELADA') {
-        expect(pagina['puedeEliminar'](actual)).toBe(false);
-        pagina['pendienteEliminar'].set(actual); await pagina['eliminar']();
-      }
+      expect(pagina['puedeEliminar'](actual)).toBe(false);
+      pagina['pendienteEliminar'].set(actual); await pagina['eliminar']();
     }
     expect(api.actualizarOrden).not.toHaveBeenCalled(); expect(api.eliminarOrden).not.toHaveBeenCalled();
   });
@@ -555,7 +707,7 @@ describe('Repuestos y permisos de órdenes', () => {
     else expect(api.actualizarContactos).toHaveBeenCalledWith(42, { emailContacto: correo });
     expect(pagina['ordenes']()[0].emailContacto).toBe(correo || null);
     expect(pagina['seleccionada']()).toBeNull();
-    expect((root.querySelectorAll('dialog')[1] as HTMLDialogElement).open).toBe(false);
+    expect((root.querySelector('dialog.modal-detalle')! as HTMLDialogElement).open).toBe(false);
     expect(pagina['mensaje']()).toContain('actualizada correctamente');
     expect(api.cambiarEstadoOrden).not.toHaveBeenCalled();
   });

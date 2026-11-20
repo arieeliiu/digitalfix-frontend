@@ -1,0 +1,36 @@
+<div class="cantidad" [class.cantidad--deshabilitada]="deshabilitado()">
+  <button
+    type="button"
+    class="paso"
+    [attr.aria-label]="'Quitar una unidad de ' + nombre()"
+    [attr.aria-controls]="idInput()"
+    [disabled]="!puedeRestar()"
+    (click)="ajustar(-1)"
+  >
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 12h12" /></svg>
+  </button>
+  <input
+    type="number"
+    inputmode="numeric"
+    class="valor"
+    [id]="idInput()"
+    [value]="valor() ?? ''"
+    [min]="min()"
+    [attr.max]="max()"
+    step="1"
+    [disabled]="deshabilitado()"
+    [attr.aria-describedby]="describedBy()"
+    (input)="escribir($any($event.target).value)"
+    (blur)="tocar()"
+  />
+  <button
+    type="button"
+    class="paso"
+    [attr.aria-label]="'Agregar una unidad de ' + nombre()"
+    [attr.aria-controls]="idInput()"
+    [disabled]="!puedeSumar()"
+    (click)="ajustar(1)"
+  >
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 6v12M6 12h12" /></svg>
+  </button>
+</div>

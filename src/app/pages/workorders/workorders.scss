@@ -5,7 +5,7 @@
 .contacto { overflow-wrap: anywhere; }
 .repuesto {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 110px;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 16px;
   padding: 12px 0;
@@ -24,19 +24,13 @@
   display: block;
 }
 
-.formulario-orden {
-  background: white;
-  padding: 24px;
-  margin: 24px 0;
-  border-radius: 12px;
-  border: 1px solid #dbe3ec;
-}
 fieldset { display: grid; gap: 12px; border: 0; padding: 0; min-width: 0; }
 fieldset input, fieldset select, fieldset textarea {
   box-sizing: border-box; width: 100%; padding: 10px;
   border: 1px solid #94a3b8; border-radius: 6px; font: inherit;
 }
-.acciones-orden { display: flex; flex-wrap: wrap; gap: var(--df-esp-2); }
+.acciones-orden { display: flex; flex-wrap: wrap; align-items: center; gap: var(--df-esp-2); }
+.accion-eliminar { margin-left: auto; }
 
 // ── Lista desplegable de órdenes ─────────────────────────────────────────────
 
@@ -58,118 +52,68 @@ fieldset input, fieldset select, fieldset textarea {
 }
 .sin-resultados { color: var(--df-texto-tenue); }
 
-// Grupo plegable de cerradas, con la misma animación de altura que cada orden.
-.grupo-cerradas { margin-top: var(--df-esp-5); }
-.grupo-cerradas__titulo {
-  margin: 0;
-  button {
-    display: flex; align-items: center; gap: var(--df-esp-2);
-    padding: var(--df-esp-2) 0; border: 0; background: none; cursor: pointer;
-    color: var(--df-texto-secundario); font: inherit; font-size: 15px; font-weight: 700;
-    &:focus-visible { outline: 3px solid var(--df-primario); outline-offset: 2px; }
-  }
-  svg {
-    width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2;
-    stroke-linecap: round; stroke-linejoin: round; transition: transform .25s ease;
-  }
-}
-.grupo-cerradas__cantidad {
-  padding: 0 var(--df-esp-2); border-radius: 999px;
-  background: var(--df-exito-suave); color: var(--df-exito); font-size: 12px;
-}
-.grupo-cerradas__panel {
-  display: grid; grid-template-rows: 0fr; transition: grid-template-rows .3s ease;
-  > ul { min-height: 0; overflow: hidden; padding-top: var(--df-esp-2); }
-}
-.grupo-cerradas--abierto {
-  .grupo-cerradas__panel { grid-template-rows: 1fr; }
-  .grupo-cerradas__titulo svg { transform: rotate(90deg); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .grupo-cerradas__panel, .grupo-cerradas__titulo svg { transition: none; }
-}
-.btn:disabled { opacity: .55; cursor: not-allowed; }
-.btn.btn-peligro { background: #b91c1c; color: white; }
 
 // ── Botones ──────────────────────────────────────────────────────────────────
 
-.btn {
-  display: inline-block;
-  padding: 10px 20px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  text-decoration: none;
-  border: none;
-  line-height: 1;
-
-  &.btn-primario {
-    background: #2454a6;
-    color: white;
-    &:hover { background: #1c3f82; }
-  }
-
-  &.btn-secundario {
-    background: white;
-    color: #475569;
-    border: 1px solid #dbe3ed;
-    &:hover { background: #f1f5f9; }
-  }
-
-
-}
-
-// Modal nativo: foco contenido, Escape y retorno del foco gestionados por el navegador.
-.modal-orden {
-  width: min(600px, calc(100% - 32px));
-  max-height: 90dvh;
-  padding: 0;
-  border: 0;
-  border-radius: 14px;
-  background: #fff;
-  color: #172033;
-  box-shadow: 0 24px 64px rgba(15, 23, 42, .3);
-  overflow-y: auto;
-  box-sizing: border-box;
-
-  &::backdrop { background: rgba(15, 23, 42, .55); }
-
-  h2 { margin: 0 0 20px; }
-}
-
-.modal-orden__contenido { padding: 24px; }
-.acciones-modal {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 10px;
-  padding-top: 12px;
-}
+// Base y variantes de .btn viven en styles.scss; aquí solo el ajuste propio de la página.
+.btn { line-height: 1; }
 
 @media (max-width: 480px) {
   .pagina { padding: 20px 14px; }
-  .modal-orden__contenido { padding: 18px; }
   .acciones-header { width: 100%; justify-content: flex-end; }
 }
 
-// Detalle accesible: la información y los estados permanecen dentro del diálogo.
+// Detalle de tamaño fijo: encabezado y pie quedan a la vista y cada columna se desplaza sola.
 .modal-detalle {
-  width: min(760px, calc(100% - 32px));
-
+  width: min(1040px, calc(100% - 32px));
+  height: min(680px, calc(100dvh - 32px));
+  overflow: hidden;
+  .modal-orden__contenido {
+    display: flex; flex-direction: column; height: 100%; box-sizing: border-box;
+  }
   .modal-detalle__encabezado {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 16px;
-    padding-bottom: 12px;
-    margin-bottom: 16px;
-    border-bottom: 1px solid #dbe3ec;
-
+    display: flex; justify-content: space-between; align-items: center; gap: var(--df-esp-4);
+    padding-bottom: var(--df-esp-3); margin-bottom: var(--df-esp-4);
+    border-bottom: 1px solid var(--df-borde);
     h2 { margin: 0; }
   }
-
-  h3 { margin: 22px 0 12px; }
-  .contacto { overflow-wrap: anywhere; }
-  fieldset { margin-top: 12px; }
+}
+.detalle-formulario { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.detalle-columnas {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  flex: 1; min-height: 0;
+}
+.columna {
+  display: grid; align-content: start; gap: var(--df-esp-3); min-width: 0;
+  overflow-y: auto; padding-right: var(--df-esp-4);
+  & + .columna { padding-left: var(--df-esp-5); border-left: 1px solid var(--df-borde); }
+  h3 { margin: 0; font-size: 15px; }
+}
+.subseccion {
+  display: grid; gap: var(--df-esp-3);
+  padding-top: var(--df-esp-3); border-top: 1px solid var(--df-borde);
+}
+.detalle-descripcion { line-height: 1.5; }
+.detalle-datos {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--df-esp-2) var(--df-esp-4); margin: 0;
+  dt { color: var(--df-texto); font-size: 15px; font-weight: 700; }
+  .detalle-datos__ancho { grid-column: 1 / -1; }
+  dd { margin: 2px 0 0; color: var(--df-texto-secundario); font-size: 15px; overflow-wrap: anywhere; }
+}
+.detalle-numero { color: var(--df-texto-tenue); font-size: 0.75em; font-weight: 600; }
+.columna-ayuda { margin: 0; color: var(--df-texto-tenue); font-size: 13px; }
+.lista-repuestos { margin: 0; padding-left: var(--df-esp-4); }
+.detalle-pie {
+  display: flex; justify-content: space-between; gap: var(--df-esp-3); flex: none;
+  > :only-child { margin-left: auto; }
+  margin-top: var(--df-esp-4); padding-top: var(--df-esp-4); border-top: 1px solid var(--df-borde);
+}
+// En pantallas angostas las columnas se apilan y se desplaza el bloque completo; el pie sigue fijo.
+@media (max-width: 760px) {
+  .detalle-columnas { display: block; overflow-y: auto; }
+  .columna { overflow: visible; padding-right: 0; }
+  .columna + .columna {
+    margin-top: var(--df-esp-4); padding: var(--df-esp-4) 0 0;
+    border-left: 0; border-top: 1px solid var(--df-borde);
+  }
 }

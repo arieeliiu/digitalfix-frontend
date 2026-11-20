@@ -1,0 +1,17 @@
+<h3 class="titulo">
+  <button
+    type="button"
+    [id]="idBoton()"
+    [attr.aria-controls]="idBoton() + '-panel'"
+    [attr.aria-expanded]="abierto()"
+    (click)="alternar()"
+  >
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6" /></svg>
+    {{ titulo() }}
+    <span class="cantidad">{{ cantidad() }}</span>
+  </button>
+</h3>
+<!-- Siempre en el DOM para animar la altura; plegado queda inerte para teclado y lectores. -->
+<div class="panel" [id]="idBoton() + '-panel'" [inert]="!abierto()">
+  <div class="recorte"><ng-content /></div>
+</div>
