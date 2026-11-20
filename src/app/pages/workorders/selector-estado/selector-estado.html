@@ -1,0 +1,26 @@
+<fieldset id="estado" class="selector" [disabled]="deshabilitado()">
+  <legend>Nuevo estado</legend>
+  <div class="opciones">
+    @for (estado of estados(); track estado) {
+      <label
+        class="opcion"
+        [class.opcion--elegida]="valor() === estado"
+      >
+        <input
+          type="radio"
+          name="nuevo-estado"
+          [value]="estado"
+          [checked]="valor() === estado"
+          (change)="elegir(estado)"
+        />
+        <span class="marca" aria-hidden="true">
+          <svg viewBox="0 0 24 24" focusable="false"><path d="m5 12 5 5 9-10" /></svg>
+        </span>
+        <span class="texto">
+          <span class="nombre">{{ etiquetas[estado] }}</span>
+          <span class="descripcion">{{ descripciones[estado] }}</span>
+        </span>
+      </label>
+    }
+  </div>
+</fieldset>

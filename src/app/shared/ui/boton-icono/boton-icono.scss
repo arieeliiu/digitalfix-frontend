@@ -56,6 +56,28 @@
   }
 }
 
+// Eliminar: gris y sin relleno en reposo; el rojo aparece solo al apuntarlo o enfocarlo.
+.boton--eliminar {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--df-borde);
+  background: var(--df-superficie);
+  color: var(--df-texto-tenue);
+
+  .icono {
+    width: 18px;
+    height: 18px;
+    stroke-width: 2;
+  }
+
+  &:hover:not(:disabled),
+  &:focus-visible {
+    border-color: var(--df-peligro);
+    background: var(--df-peligro-suave);
+    color: var(--df-peligro);
+  }
+}
+
 .boton--cargando .icono {
   animation: girar 0.9s linear infinite;
 }
@@ -89,6 +111,13 @@
   pointer-events: none;
   opacity: 0;
   visibility: hidden;
+}
+
+// El basurero vive dentro de paneles con overflow oculto: su tooltip va a la izquierda, a su altura.
+.boton--eliminar::after {
+  top: 50%;
+  right: calc(100% + 6px);
+  transform: translateY(-50%);
 }
 
 .boton:hover::after,

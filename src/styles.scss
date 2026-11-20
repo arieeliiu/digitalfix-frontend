@@ -75,3 +75,81 @@ body {
     padding: var(--df-esp-5) var(--df-esp-4);
   }
 }
+
+// Modal nativo: foco contenido, Escape y retorno del foco gestionados por el navegador.
+.modal-orden {
+  width: min(600px, calc(100% - 32px));
+  max-height: 90dvh;
+  padding: 0;
+  border: 0;
+  border-radius: 14px;
+  background: var(--df-superficie);
+  color: var(--df-texto);
+  box-shadow: 0 24px 64px rgba(15, 23, 42, .3);
+  overflow-y: auto;
+  box-sizing: border-box;
+
+  &::backdrop { background: rgba(15, 23, 42, .55); }
+
+  h2 { margin: 0 0 20px; }
+}
+
+.modal-orden__contenido { padding: 24px; }
+// Confirmaciones breves sobre otro diálogo (p. ej. cancelar una orden).
+.modal-confirmacion {
+  width: min(440px, calc(100% - 32px));
+  h2 { margin-bottom: var(--df-esp-3); }
+}
+.acciones-modal {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 12px;
+}
+
+@media (max-width: 480px) {
+  .modal-orden__contenido { padding: 18px; }
+}
+
+// ── Botones ──────────────────────────────────────────────────────────────────
+// Mismos valores que ya definían órdenes y catálogo. Las páginas que aún los redefinen
+// (catálogo) ganan por especificidad, así que su aspecto no cambia.
+.btn {
+  display: inline-block;
+  padding: 10px 20px;
+  border: none;
+  border-radius: var(--df-radio-md);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+
+  &:disabled { opacity: 0.55; cursor: not-allowed; }
+}
+
+.btn.btn-primario {
+  background: var(--df-primario);
+  color: var(--df-superficie);
+  &:hover:not(:disabled) { background: var(--df-primario-hover); }
+}
+
+.btn.btn-secundario {
+  border: 1px solid var(--df-borde);
+  background: var(--df-superficie);
+  color: var(--df-texto-secundario);
+  &:hover:not(:disabled) { background: var(--df-fondo); }
+}
+
+.btn.btn-peligro {
+  background: var(--df-peligro);
+  color: var(--df-superficie);
+}
+
+// Cancelar una orden: borde rojo sin relleno, visible pero sin el peso de una acción principal.
+.btn.btn-cancelar {
+  border: 1px solid var(--df-peligro);
+  background: var(--df-superficie);
+  color: var(--df-peligro-texto);
+  &:hover:not(:disabled) { background: var(--df-peligro-suave); }
+}

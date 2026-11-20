@@ -7,11 +7,14 @@ import { BotonIcono } from '../../shared/ui/boton-icono/boton-icono';
 import { EstadoOrdenBadge } from '../../shared/ui/estado-orden/estado-orden';
 import { OrdenDesplegable } from './orden-desplegable/orden-desplegable';
 import { FiltrosOrdenes } from './filtros-ordenes/filtros-ordenes';
+import { SelectorEstado } from './selector-estado/selector-estado';
+import { Cantidad } from '../../shared/ui/cantidad/cantidad';
+import { GrupoPlegable } from './grupo-plegable/grupo-plegable';
 import { ServicioAutenticacion } from '../../services/auth.service';
 import { mensajeErrorApi } from '../../services/error-api';
 
 @Component({
-  selector: 'app-workorders', imports: [FormsModule, CurrencyPipe, DatePipe, BotonIcono, EstadoOrdenBadge, OrdenDesplegable, FiltrosOrdenes, NgTemplateOutlet],
+  selector: 'app-workorders', imports: [FormsModule, CurrencyPipe, DatePipe, BotonIcono, EstadoOrdenBadge, OrdenDesplegable, FiltrosOrdenes, SelectorEstado, GrupoPlegable, Cantidad, NgTemplateOutlet],
   templateUrl: './workorders.html', styleUrl: './workorders.scss',
 })
 export class PaginaWorkOrders implements OnInit {
@@ -19,6 +22,8 @@ export class PaginaWorkOrders implements OnInit {
   private readonly auth = inject(ServicioAutenticacion);
   @ViewChild('modalOrden') private modalOrden?: ElementRef<HTMLDialogElement>;
   @ViewChild('modalDetalle') private modalDetalle?: ElementRef<HTMLDialogElement>;
+  @ViewChild('modalCancelacion') private modalCancelacion?: ElementRef<HTMLDialogElement>;
+  @ViewChild('modalEliminacion') private modalEliminacion?: ElementRef<HTMLDialogElement>;
   protected readonly servicios = signal<ServicioCatalogo[]>([]);
   protected readonly repuestos = signal<RepuestoCatalogo[]>([]);
   protected readonly cargandoRepuestos = signal(false);
@@ -42,6 +47,7 @@ export class PaginaWorkOrders implements OnInit {
   protected readonly modalOrdenAbierto = signal(false);
   protected readonly modalDetalleAbierto = signal(false);
   protected readonly pendienteEliminar = signal<OrdenTrabajo | null>(null);
+  protected readonly pendienteCancelar = signal<OrdenTrabajo | null>(null);
   protected readonly ocupado = computed(() => this.cargando() || this.guardando() || this.consultando() || this.cargandoRepuestos());
   protected readonly puedeGestionarEstado = computed(() => this.auth.tieneRol('Admin') || this.auth.tieneRol('Operador'));
   protected readonly error = signal('');
@@ -61,7 +67,8 @@ export class PaginaWorkOrders implements OnInit {
       CREADA: 'ASIGNADA', ASIGNADA: 'EN_DESPLAZAMIENTO',
       EN_DESPLAZAMIENTO: 'EN_EJECUCION', EN_EJECUCION: 'CERRADA',
     };
-    return estado && siguientes[estado] ? [siguientes[estado]!, 'CANCELADA'] : [];
+    // Cancelar no es un paso del flujo: tiene su propio botón (puedeCancelar / solicitarCancelacion).
+    return estado && siguientes[estado] ? [siguientes[estado]!] : [];
   });
 
   ngOnInit(): void { void this.cargar(); }
@@ -71,7 +78,7 @@ export class PaginaWorkOrders implements OnInit {
     this.cerrarDetalle();
     this.cargando.set(true); this.error.set('');
     this.cantidades = {};
-    this.pendienteEliminar.set(null); this.cancelarEdicion();
+    this.ocultarEliminacion(); this.ocultarCancelacion(); this.cancelarEdicion();
     try {
       const [servicios, ordenes] = await Promise.all([
         firstValueFrom(this.api.listarServicios()), firstValueFrom(this.api.listarOrdenes()),
@@ -122,7 +129,6 @@ export class PaginaWorkOrders implements OnInit {
   // Las cerradas ya no requieren gestión: van en su propio grupo, plegado por defecto.
   protected readonly ordenesActivas = computed(() => this.ordenesFiltradas().filter(o => o.estado !== 'CERRADA'));
   protected readonly ordenesCerradas = computed(() => this.ordenesFiltradas().filter(o => o.estado === 'CERRADA'));
-  protected readonly cerradasAbiertas = signal(false);
 
   // Órdenes desplegadas en la lista; se permiten varias abiertas a la vez para comparar.
   protected readonly expandidas = signal<ReadonlySet<number>>(new Set());
@@ -147,15 +153,14 @@ export class PaginaWorkOrders implements OnInit {
     return this.repuestos().find(repuesto => repuesto.id === id)?.nombre ?? `Repuesto #${id}`;
   }
 
-  // Convertir los estados a etiquetas legibles, conservando los valores de la API.
-  protected nombreEstado(estado: EstadoOrden): string {
-    const etiquetas: Record<EstadoOrden, string> = {
-      CREADA: 'CREADA', ASIGNADA: 'ASIGNADA',
-      EN_DESPLAZAMIENTO: 'EN DESPLAZAMIENTO',
-      EN_EJECUCION: 'EN EJECUCIÓN',
-      CERRADA: 'CERRADA', CANCELADA: 'CANCELADA',
-    };
-    return etiquetas[estado];
+  // Orden lista para asignar técnico: la acción principal de la lista se llama "Asignar".
+  protected porAsignar(orden: OrdenTrabajo): boolean {
+    return this.puedeGestionarEstado() && orden.estado === 'CREADA';
+  }
+
+  // El formulario de asignación solo aplica a quien gestiona estados.
+  protected asignando(): boolean {
+    return this.puedeGestionarEstado() && this.nuevoEstado === 'ASIGNADA';
   }
 
   private puedeEditarTecnico(orden: OrdenTrabajo): boolean {
@@ -173,8 +178,10 @@ export class PaginaWorkOrders implements OnInit {
       || this.puedeEditarTecnico(orden);
   }
 
+  // Cancelar es el camino normal; eliminar queda solo para órdenes mal creadas: CREADA y sin técnico.
   protected puedeEliminar(orden: OrdenTrabajo): boolean {
-    return ['CREADA', 'CANCELADA'].includes(orden.estado) && (this.auth.tieneRol('Admin') || this.esPropia(orden));
+    return orden.estado === 'CREADA' && !orden.tecnicoId
+      && (this.auth.tieneRol('Admin') || this.esPropia(orden));
   }
 
   protected abrirNuevaOrden(): void {
@@ -350,7 +357,7 @@ export class PaginaWorkOrders implements OnInit {
       this.emailTecnicoOriginal = this.emailTecnico;
       this.repuestosOriginales = [...(orden.repuestos ?? [])];
       this.cantidadesEdicion = Object.fromEntries(this.repuestosOriginales.map(r => [r.repuestoId, r.cantidad]));
-      this.pendienteEliminar.set(null);
+      this.ocultarEliminacion();
       this.abrirModal();
     } catch (error) { this.error.set(mensajeErrorApi(error)); }
     finally { this.consultando.set(false); }
@@ -367,7 +374,26 @@ export class PaginaWorkOrders implements OnInit {
   }
 
   protected solicitarEliminacion(orden: OrdenTrabajo): void {
-    if (!this.ocupado() && this.puedeEliminar(orden)) this.pendienteEliminar.set(orden);
+    if (this.ocupado() || !this.puedeEliminar(orden)) return;
+    this.error.set('');
+    this.pendienteEliminar.set(orden);
+    const dialogo = this.modalEliminacion?.nativeElement;
+    if (dialogo && !dialogo.open) dialogo.showModal();
+  }
+
+  protected cerrarEliminacion(): void {
+    if (!this.guardando()) this.ocultarEliminacion();
+  }
+
+  protected alCancelarEliminacion(evento: Event): void {
+    evento.preventDefault();
+    this.cerrarEliminacion();
+  }
+
+  private ocultarEliminacion(): void {
+    this.pendienteEliminar.set(null);
+    const dialogo = this.modalEliminacion?.nativeElement;
+    if (dialogo?.open) dialogo.close();
   }
 
   protected async eliminar(): Promise<void> {
@@ -379,10 +405,54 @@ export class PaginaWorkOrders implements OnInit {
       this.ordenes.update(ordenes => ordenes.filter(o => o.id !== orden.id));
       if (this.seleccionada()?.id === orden.id) this.seleccionada.set(null);
       if (this.editandoId() === orden.id) this.cancelarEdicion();
-      this.pendienteEliminar.set(null);
+      this.guardando.set(false);
+      this.ocultarEliminacion();
       this.mensaje.set(`Orden #${orden.id} eliminada correctamente.`);
     } catch (error) { this.error.set(mensajeErrorApi(error)); }
     finally { this.guardando.set(false); }
+  }
+
+  // Cancelar: salida directa desde la lista o el detalle, siempre con confirmación porque es definitiva.
+  protected puedeCancelar(orden: OrdenTrabajo): boolean {
+    return this.puedeGestionarEstado() && !['CERRADA', 'CANCELADA'].includes(orden.estado);
+  }
+
+  protected solicitarCancelacion(orden: OrdenTrabajo): void {
+    if (this.ocupado() || !this.puedeCancelar(orden)) return;
+    this.error.set('');
+    this.pendienteCancelar.set(orden);
+    const dialogo = this.modalCancelacion?.nativeElement;
+    if (dialogo && !dialogo.open) dialogo.showModal();
+  }
+
+  protected async confirmarCancelacion(): Promise<void> {
+    const orden = this.pendienteCancelar();
+    if (!orden || this.ocupado() || !this.puedeCancelar(orden)) return;
+    this.guardando.set(true); this.error.set(''); this.mensaje.set('');
+    try {
+      const actualizada = await firstValueFrom(this.api.cambiarEstadoOrden(orden.id, { status: 'CANCELADA' }));
+      this.reemplazarOrden(actualizada);
+      if (this.seleccionada()?.id === orden.id) this.mostrarDetalle(actualizada);
+      this.guardando.set(false);
+      this.ocultarCancelacion();
+      this.mensaje.set(`Orden #${orden.id} cancelada.`);
+    } catch (error) { this.error.set(mensajeErrorApi(error)); }
+    finally { this.guardando.set(false); }
+  }
+
+  protected cerrarCancelacion(): void {
+    if (!this.guardando()) this.ocultarCancelacion();
+  }
+
+  protected alCancelarCancelacion(evento: Event): void {
+    evento.preventDefault();
+    this.cerrarCancelacion();
+  }
+
+  private ocultarCancelacion(): void {
+    this.pendienteCancelar.set(null);
+    const dialogo = this.modalCancelacion?.nativeElement;
+    if (dialogo?.open) dialogo.close();
   }
 
   protected async cambiarEstado(): Promise<void> {

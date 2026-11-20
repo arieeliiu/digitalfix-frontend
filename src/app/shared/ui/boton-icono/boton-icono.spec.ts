@@ -68,4 +68,13 @@ describe('Botón de icono', () => {
     expect(boton.classList).toContain('boton--cargando');
     expect(boton.getAttribute('aria-busy')).toBe('true');
   });
+
+  it('el icono de eliminar usa su propia variante discreta', () => {
+    const { fixture, boton } = crear();
+    fixture.componentInstance.icono.set('eliminar');
+    fixture.detectChanges();
+    expect(boton.classList).toContain('boton--eliminar');
+    expect(boton.classList).not.toContain('boton--crear');
+    expect(boton.querySelector('svg')).not.toBeNull();
+  });
 });
