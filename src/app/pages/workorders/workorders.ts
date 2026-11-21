@@ -1,5 +1,5 @@
 import { Component, computed, ElementRef, inject, OnInit, signal, ViewChild } from '@angular/core';
-import { CurrencyPipe, DatePipe, NgTemplateOutlet } from '@angular/common';
+import { CurrencyPipe, DatePipe } from '@angular/common';
 import { FormsModule, FormControl, Validators } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { ServicioApi, OrdenTrabajo, ServicioCatalogo, EstadoOrden, RepuestoCatalogo, RepuestoOrden } from '../../services/api.service';
@@ -9,12 +9,11 @@ import { OrdenDesplegable } from './orden-desplegable/orden-desplegable';
 import { FiltrosOrdenes } from './filtros-ordenes/filtros-ordenes';
 import { SelectorEstado } from './selector-estado/selector-estado';
 import { Cantidad } from '../../shared/ui/cantidad/cantidad';
-import { GrupoPlegable } from './grupo-plegable/grupo-plegable';
 import { ServicioAutenticacion } from '../../services/auth.service';
 import { mensajeErrorApi } from '../../services/error-api';
 
 @Component({
-  selector: 'app-workorders', imports: [FormsModule, CurrencyPipe, DatePipe, BotonIcono, EstadoOrdenBadge, OrdenDesplegable, FiltrosOrdenes, SelectorEstado, GrupoPlegable, Cantidad, NgTemplateOutlet],
+  selector: 'app-workorders', imports: [FormsModule, CurrencyPipe, DatePipe, BotonIcono, EstadoOrdenBadge, OrdenDesplegable, FiltrosOrdenes, SelectorEstado, Cantidad],
   templateUrl: './workorders.html', styleUrl: './workorders.scss',
 })
 export class PaginaWorkOrders implements OnInit {
@@ -125,10 +124,6 @@ export class PaginaWorkOrders implements OnInit {
         orden.emailTecnico ?? '', orden.tecnicoId ?? '', this.nombreServicio(orden.servicioId)]
         .some(campo => campo.toLowerCase().includes(texto))));
   });
-
-  // Las cerradas ya no requieren gestión: van en su propio grupo, plegado por defecto.
-  protected readonly ordenesActivas = computed(() => this.ordenesFiltradas().filter(o => o.estado !== 'CERRADA'));
-  protected readonly ordenesCerradas = computed(() => this.ordenesFiltradas().filter(o => o.estado === 'CERRADA'));
 
   // Órdenes desplegadas en la lista; se permiten varias abiertas a la vez para comparar.
   protected readonly expandidas = signal<ReadonlySet<number>>(new Set());
