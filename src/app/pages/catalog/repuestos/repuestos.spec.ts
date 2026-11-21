@@ -150,6 +150,26 @@ describe('Catálogo de repuestos', () => {
     expect(root.querySelector('.celda-stock')?.textContent?.trim()).toBe('4');
   });
 
+  it('el formulario se abre en una ventana emergente y Cerrar o Escape la cierran sin guardar', async () => {
+    const { fixture, root } = await prepararAdmin();
+    const ventana = root.querySelector('dialog[aria-labelledby="form-repuesto"]') as HTMLDialogElement;
+    expect(ventana.open).toBe(false);
+    boton(root, 'Nuevo repuesto').click(); fixture.detectChanges();
+    expect(ventana.open).toBe(true);
+    expect(ventana.querySelector('form')).not.toBeNull();
+    expect(ventana.querySelector('label[for="repuesto-nombre"]')?.textContent).toContain('Nombre');
+    boton(ventana, 'Cerrar formulario de repuesto').click(); fixture.detectChanges();
+    expect(ventana.open).toBe(false);
+    expect(root.querySelector('form')).toBeNull();
+
+    boton(root, 'Editar repuesto Cable').click(); fixture.detectChanges();
+    const evento = new Event('cancel', { cancelable: true });
+    ventana.dispatchEvent(evento); fixture.detectChanges();
+    expect(evento.defaultPrevented).toBe(true);
+    expect(ventana.open).toBe(false);
+    http.expectNone(r => r.method !== 'GET');
+  });
+
   it('eliminar abre una ventana emergente, Conservar la cierra y Confirmar envía un solo DELETE', async () => {
     const { fixture, root } = await prepararAdmin();
     const ventana = dialogo(root);

@@ -10,26 +10,49 @@
   </header>
 
   @if (mensaje()) { <p role="status">{{ mensaje() }}</p> }
-  <!-- Los errores al eliminar se muestran dentro de su ventana emergente. -->
-  @if (errorOperacion() && !pendienteEliminar()) { <p class="mensaje-error" role="alert">{{ errorOperacion() }}</p> }
+  <!-- Los errores al guardar o eliminar se muestran dentro de su ventana emergente. -->
+  @if (errorOperacion() && !pendienteEliminar() && !formulario()) { <p class="mensaje-error" role="alert">{{ errorOperacion() }}</p> }
 
-  @if (esAdmin() && formulario()) {
-    <form class="formulario-catalogo" aria-labelledby="form-repuesto" (ngSubmit)="guardar()">
-      <h2 id="form-repuesto">{{ datos.id === null ? 'Nuevo repuesto' : 'Editar repuesto' }}</h2>
-      <fieldset [disabled]="ocupado()">
-        <label for="repuesto-nombre">Nombre</label>
-        <input id="repuesto-nombre" name="nombre" [(ngModel)]="datos.nombre" required />
-        <label for="repuesto-descripcion">Descripción</label>
-        <textarea id="repuesto-descripcion" name="descripcion" [(ngModel)]="datos.descripcion" rows="3" required></textarea>
-        <label for="repuesto-stock">Stock</label>
-        <input id="repuesto-stock" name="stock" type="number" [(ngModel)]="datos.stock" min="0" step="1" required />
-        <div class="acciones-header">
-          <button type="submit" class="btn btn-primario" [disabled]="ocupado()">{{ guardando() ? 'Guardando...' : 'Guardar repuesto' }}</button>
-          <button type="button" class="btn btn-secundario" (click)="cancelar()">Cancelar</button>
+  <dialog #modalFormulario class="modal-orden modal-formulario" aria-modal="true" aria-labelledby="form-repuesto"
+    (cancel)="alCancelarFormulario($event)">
+    @if (esAdmin() && formulario()) {
+      <div class="modal-orden__contenido">
+        <div class="modal-encabezado">
+          <h2 id="form-repuesto">{{ datos.id === null ? 'Nuevo repuesto' : 'Editar repuesto' }}</h2>
+          <button type="button" class="btn btn-secundario" (click)="cancelar()" [disabled]="ocupado()" aria-label="Cerrar formulario de repuesto">Cerrar</button>
         </div>
-      </fieldset>
-    </form>
-  }
+        @if (errorOperacion()) { <p class="mensaje-error" role="alert">{{ errorOperacion() }}</p> }
+        <form aria-labelledby="form-repuesto" (ngSubmit)="guardar()">
+          <fieldset class="formulario-modal" [disabled]="ocupado()">
+            <div class="formulario-cuerpo">
+              <div class="campos">
+                <div class="campo campo--ancho">
+                  <label for="repuesto-nombre">Nombre</label>
+                  <input id="repuesto-nombre" name="nombre" [(ngModel)]="datos.nombre" required />
+                </div>
+                <div class="campo campo--ancho">
+                  <label for="repuesto-descripcion">Descripción</label>
+                  <textarea id="repuesto-descripcion" name="descripcion" [(ngModel)]="datos.descripcion" rows="3" required
+                    aria-describedby="ayuda-repuesto-descripcion"></textarea>
+                  <p id="ayuda-repuesto-descripcion" class="campo__ayuda">Modelo, medida o uso, para reconocerlo al asignar.</p>
+                </div>
+                <div class="campo">
+                  <label for="repuesto-stock">Stock</label>
+                  <input id="repuesto-stock" name="stock" type="number" [(ngModel)]="datos.stock" min="0" step="1" required
+                    aria-describedby="ayuda-repuesto-stock" />
+                  <p id="ayuda-repuesto-stock" class="campo__ayuda">Unidades disponibles en bodega.</p>
+                </div>
+              </div>
+            </div>
+            <div class="pie-formulario">
+              <button type="button" class="btn btn-secundario" (click)="cancelar()">Cancelar</button>
+              <button type="submit" class="btn btn-primario" [disabled]="ocupado()">{{ guardando() ? 'Guardando...' : 'Guardar repuesto' }}</button>
+            </div>
+          </fieldset>
+        </form>
+      </div>
+    }
+  </dialog>
 
   @if (cargando()) { <p role="status">Cargando repuestos...</p> }
   @if (error()) {

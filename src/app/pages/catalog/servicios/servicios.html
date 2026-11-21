@@ -10,26 +10,49 @@
   </header>
 
   @if (mensaje()) { <p role="status">{{ mensaje() }}</p> }
-  <!-- Los errores al eliminar se muestran dentro de su ventana emergente. -->
-  @if (errorOperacion() && !pendienteEliminar()) { <p class="mensaje-error" role="alert">{{ errorOperacion() }}</p> }
+  <!-- Los errores al guardar o eliminar se muestran dentro de su ventana emergente. -->
+  @if (errorOperacion() && !pendienteEliminar() && !formulario()) { <p class="mensaje-error" role="alert">{{ errorOperacion() }}</p> }
 
-  @if (esAdmin() && formulario()) {
-    <form class="formulario-catalogo" aria-labelledby="form-servicio" (ngSubmit)="guardar()">
-      <h2 id="form-servicio">{{ datos.id === null ? 'Nuevo servicio' : 'Editar servicio' }}</h2>
-      <fieldset [disabled]="ocupado()">
-        <label for="servicio-nombre">Nombre</label>
-        <input id="servicio-nombre" name="nombre" [(ngModel)]="datos.nombre" required />
-        <label for="servicio-descripcion">Descripción (opcional)</label>
-        <textarea id="servicio-descripcion" name="descripcion" [(ngModel)]="datos.descripcion" rows="3"></textarea>
-        <label for="servicio-tarifa">Tarifa (CLP)</label>
-        <input id="servicio-tarifa" name="tarifa" type="number" [(ngModel)]="datos.tarifa" min="0" step="any" required />
-        <div class="acciones-header">
-          <button type="submit" class="btn btn-primario" [disabled]="ocupado()">{{ guardando() ? 'Guardando...' : 'Guardar servicio' }}</button>
-          <button type="button" class="btn btn-secundario" (click)="cancelar()">Cancelar</button>
+  <dialog #modalFormulario class="modal-orden modal-formulario" aria-modal="true" aria-labelledby="form-servicio"
+    (cancel)="alCancelarFormulario($event)">
+    @if (esAdmin() && formulario()) {
+      <div class="modal-orden__contenido">
+        <div class="modal-encabezado">
+          <h2 id="form-servicio">{{ datos.id === null ? 'Nuevo servicio' : 'Editar servicio' }}</h2>
+          <button type="button" class="btn btn-secundario" (click)="cancelar()" [disabled]="ocupado()" aria-label="Cerrar formulario de servicio">Cerrar</button>
         </div>
-      </fieldset>
-    </form>
-  }
+        @if (errorOperacion()) { <p class="mensaje-error" role="alert">{{ errorOperacion() }}</p> }
+        <form aria-labelledby="form-servicio" (ngSubmit)="guardar()">
+          <fieldset class="formulario-modal" [disabled]="ocupado()">
+            <div class="formulario-cuerpo">
+              <div class="campos">
+                <div class="campo campo--ancho">
+                  <label for="servicio-nombre">Nombre</label>
+                  <input id="servicio-nombre" name="nombre" [(ngModel)]="datos.nombre" required />
+                </div>
+                <div class="campo campo--ancho">
+                  <label for="servicio-descripcion">Descripción (opcional)</label>
+                  <textarea id="servicio-descripcion" name="descripcion" [(ngModel)]="datos.descripcion" rows="3"
+                    aria-describedby="ayuda-servicio-descripcion"></textarea>
+                  <p id="ayuda-servicio-descripcion" class="campo__ayuda">Qué incluye el servicio. Se muestra en el catálogo.</p>
+                </div>
+                <div class="campo">
+                  <label for="servicio-tarifa">Tarifa (CLP)</label>
+                  <input id="servicio-tarifa" name="tarifa" type="number" [(ngModel)]="datos.tarifa" min="0" step="any" required
+                    aria-describedby="ayuda-servicio-tarifa" />
+                  <p id="ayuda-servicio-tarifa" class="campo__ayuda">Valor en pesos, sin puntos.</p>
+                </div>
+              </div>
+            </div>
+            <div class="pie-formulario">
+              <button type="button" class="btn btn-secundario" (click)="cancelar()">Cancelar</button>
+              <button type="submit" class="btn btn-primario" [disabled]="ocupado()">{{ guardando() ? 'Guardando...' : 'Guardar servicio' }}</button>
+            </div>
+          </fieldset>
+        </form>
+      </div>
+    }
+  </dialog>
 
   @if (cargando()) { <p role="status">Cargando servicios...</p> }
   @if (error()) {

@@ -1,7 +1,3 @@
-.repuestos {
-  border-top: 1px solid #dbe3ec;
-  padding-top: 12px;
-}
 .contacto { overflow-wrap: anywhere; }
 .repuesto {
   display: grid;
@@ -9,10 +5,9 @@
   align-items: center;
   gap: 16px;
   padding: 12px 0;
-  border-bottom: 1px solid #dbe3ec;
+  border-bottom: 1px solid var(--df-borde);
   label { display: block; font-weight: 600; }
-  p { margin: 6px 0; color: #475569; overflow-wrap: anywhere; }
-  input:disabled { background: #f1f5f9; color: #64748b; }
+  p { margin: 6px 0; color: var(--df-texto-secundario); overflow-wrap: anywhere; }
 }
 @media (max-width: 420px) {
   .repuesto { grid-template-columns: minmax(0, 1fr); }
@@ -24,11 +19,8 @@
   display: block;
 }
 
+// Los campos (.campo) y el esquema de los formularios viven en styles.scss.
 fieldset { display: grid; gap: 12px; border: 0; padding: 0; min-width: 0; }
-fieldset input, fieldset select, fieldset textarea {
-  box-sizing: border-box; width: 100%; padding: 10px;
-  border: 1px solid #94a3b8; border-radius: 6px; font: inherit;
-}
 .acciones-orden { display: flex; flex-wrap: wrap; align-items: center; gap: var(--df-esp-2); }
 .accion-eliminar { margin-left: auto; }
 

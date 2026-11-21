@@ -18,6 +18,7 @@ import { BotonIcono } from '../../../shared/ui/boton-icono/boton-icono';
 export class PaginaRepuestos implements OnInit {
   private readonly api = inject(ServicioApi);
   private readonly auth = inject(ServicioAutenticacion);
+  @ViewChild('modalFormulario') private modalFormulario?: ElementRef<HTMLDialogElement>;
   @ViewChild('modalEliminacion') private modalEliminacion?: ElementRef<HTMLDialogElement>;
 
   protected readonly esAdmin = computed(() => this.auth.tieneRol('Admin'));
@@ -57,6 +58,9 @@ export class PaginaRepuestos implements OnInit {
     };
     this.errorOperacion.set(''); this.mensaje.set('');
     this.formulario.set(true);
+    // El formulario se abre como ventana emergente, igual que el de una orden.
+    const dialogo = this.modalFormulario?.nativeElement;
+    if (dialogo && !dialogo.open) dialogo.showModal();
   }
 
   protected cancelar(): void {
@@ -64,8 +68,16 @@ export class PaginaRepuestos implements OnInit {
     this.resetear(); this.errorOperacion.set('');
   }
 
+  // Escape equivale a "Cancelar", salvo mientras se guarda.
+  protected alCancelarFormulario(evento: Event): void {
+    evento.preventDefault();
+    this.cancelar();
+  }
+
   private resetear(): void {
     this.formulario.set(false);
+    const dialogo = this.modalFormulario?.nativeElement;
+    if (dialogo?.open) dialogo.close();
     this.datos = { id: null, nombre: '', descripcion: '', stock: null };
   }
 
