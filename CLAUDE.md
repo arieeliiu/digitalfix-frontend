@@ -57,10 +57,11 @@ Componentes de página con prefijo `Pagina` (`PaginaWorkOrders`, `PaginaCatalog`
 | `/` | PaginaAcceso | Pública (botón "Iniciar sesión con Microsoft") |
 | `/dashboard` | PaginaDashboard | `MsalGuard` (cualquier autenticado) |
 | `/workorders` | PaginaWorkOrders | Admin, Operador, Cliente |
-| `/catalog` | PaginaCatalog | Admin, Operador (Operador solo lectura) |
+| `/catalog/servicios` | PaginaServicios | Admin, Operador (Operador solo lectura) |
+| `/catalog/repuestos` | PaginaRepuestos | Admin, Operador (Operador solo lectura) |
 | `/error-autenticacion`, `/acceso-denegado` | Páginas de error | Públicas |
 
-`/inicio` y `/administracion` redirigen a `/dashboard`. `**` redirige a `/`.
+`/catalog` redirige a `/catalog/servicios`; `/inicio` y `/administracion` redirigen a `/dashboard`. `**` redirige a `/`.
 
 Pendientes del caso: `/reports` (Admin: KPIs) y `/audit` (Admin y Auditor: timeline con filtros), además del rol **Auditor**.
 El dashboard debe diferenciar el contenido por rol: Admin ve KPIs de la red, Operador órdenes por asignar o en terreno, Cliente sus últimas órdenes.
@@ -101,7 +102,7 @@ El dashboard debe diferenciar el contenido por rol: Admin ve KPIs de la red, Ope
 
 - No hay design system ni componentes compartidos (layout, navbar, botón, tabla, modal). Cada página redefine `.btn`, tarjetas, tablas y colores en su propio SCSS: hay duplicación.
 - Paleta usada: texto `#172033`, fondo `#f1f5f9`, primario `#2454a6`, borde `#dbe3ec`, peligro `#b91c1c`. Fuente Arial.
-- Budget de estilos por componente: 4 kB de aviso y 8 kB de error (`angular.json`). `workorders.scss` y `catalog.scss` son grandes: al agregar estilos, preferir mover lo común a estilos globales o tokens antes que crecer el SCSS de la página.
+- Budget de estilos por componente: 4 kB de aviso y 8 kB de error (`angular.json`). `workorders.scss` es grande: al agregar estilos, preferir mover lo común a estilos globales o tokens antes que crecer el SCSS de la página.
 **Dirección del rediseño**
 
 - Es una **herramienta de operaciones** (órdenes, stock, técnicos en terreno), no una landing: prioriza densidad de información clara, escaneo rápido de tablas y estados visibles. Nada de héroes grandes, gradientes ni animaciones decorativas.

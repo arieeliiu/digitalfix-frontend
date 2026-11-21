@@ -1,0 +1,14 @@
+@use '../catalogo';
+
+.badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.sin-stock {
+  background: var(--df-advertencia-suave);
+  color: var(--df-advertencia);
+}

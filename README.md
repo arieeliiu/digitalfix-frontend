@@ -122,7 +122,8 @@ No tiene acceso al módulo administrativo de catálogo.
 | `/` | Pública |
 | `/dashboard` | Usuario autenticado |
 | `/workorders` | Admin, Operador y Cliente |
-| `/catalog` | Admin y Operador |
+| `/catalog/servicios` | Admin y Operador (Operador solo lectura) |
+| `/catalog/repuestos` | Admin y Operador (Operador solo lectura) |
 | `/error-autenticacion` | Manejo de errores de autenticación |
 | `/acceso-denegado` | Acceso sin permisos |
 
