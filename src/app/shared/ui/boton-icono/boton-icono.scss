@@ -57,6 +57,8 @@
 }
 
 // Eliminar: gris y sin relleno en reposo; el rojo aparece solo al apuntarlo o enfocarlo.
+// Acciones de una fila (editar, eliminar): gris y con borde hasta que se apuntan.
+.boton--editar,
 .boton--eliminar {
   width: 36px;
   height: 36px;
@@ -70,6 +72,18 @@
     stroke-width: 2;
   }
 
+}
+
+.boton--editar {
+  &:hover:not(:disabled),
+  &:focus-visible {
+    border-color: var(--df-primario);
+    background: var(--df-primario-suave);
+    color: var(--df-primario);
+  }
+}
+
+.boton--eliminar {
   &:hover:not(:disabled),
   &:focus-visible {
     border-color: var(--df-peligro);
@@ -113,7 +127,8 @@
   visibility: hidden;
 }
 
-// El basurero vive dentro de paneles con overflow oculto: su tooltip va a la izquierda, a su altura.
+// Editar y eliminar viven en filas y paneles con overflow oculto: su tooltip va a la izquierda, a su altura.
+.boton--editar::after,
 .boton--eliminar::after {
   top: 50%;
   right: calc(100% + 6px);

@@ -75,11 +75,12 @@
                 <td class="celda-precio">{{ servicio.tarifa | number: '1.0-0' }}</td>
                 @if (esAdmin()) {
                   <td>
-                    <div class="acciones-header">
-                      <button type="button" class="btn btn-secundario" (click)="abrir(servicio)" [disabled]="ocupado() || formulario()"
-                        [attr.aria-label]="'Editar servicio ' + servicio.nombre">Editar</button>
-                      <button type="button" class="btn btn-peligro" (click)="solicitarEliminacion(servicio)" [disabled]="ocupado() || formulario()"
-                        [attr.aria-label]="'Eliminar servicio ' + servicio.nombre">Eliminar</button>
+                    <!-- Iconos en vez de texto: la tabla se escanea mejor; el nombre accesible lo da la etiqueta. -->
+                    <div class="acciones-fila">
+                      <df-boton-icono icono="editar" [etiqueta]="'Editar servicio ' + servicio.nombre"
+                        [deshabilitado]="ocupado() || formulario()" (accion)="abrir(servicio)" />
+                      <df-boton-icono icono="eliminar" [etiqueta]="'Eliminar servicio ' + servicio.nombre"
+                        [deshabilitado]="ocupado() || formulario()" (accion)="solicitarEliminacion(servicio)" />
                     </div>
                   </td>
                 }

@@ -82,11 +82,12 @@
                 </td>
                 @if (esAdmin()) {
                   <td>
-                    <div class="acciones-header">
-                      <button type="button" class="btn btn-secundario" (click)="abrir(repuesto)" [disabled]="ocupado() || formulario()"
-                        [attr.aria-label]="'Editar repuesto ' + repuesto.nombre">Editar</button>
-                      <button type="button" class="btn btn-peligro" (click)="solicitarEliminacion(repuesto)" [disabled]="ocupado() || formulario()"
-                        [attr.aria-label]="'Eliminar repuesto ' + repuesto.nombre">Eliminar</button>
+                    <!-- Iconos en vez de texto: la tabla se escanea mejor; el nombre accesible lo da la etiqueta. -->
+                    <div class="acciones-fila">
+                      <df-boton-icono icono="editar" [etiqueta]="'Editar repuesto ' + repuesto.nombre"
+                        [deshabilitado]="ocupado() || formulario()" (accion)="abrir(repuesto)" />
+                      <df-boton-icono icono="eliminar" [etiqueta]="'Eliminar repuesto ' + repuesto.nombre"
+                        [deshabilitado]="ocupado() || formulario()" (accion)="solicitarEliminacion(repuesto)" />
                     </div>
                   </td>
                 }

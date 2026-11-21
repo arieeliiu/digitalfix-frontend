@@ -47,3 +47,8 @@
   font-size: 13px;
   overflow-wrap: anywhere;
 }
+
+.acciones-fila {
+  display: flex;
+  gap: var(--df-esp-2);
+}
