@@ -1,0 +1,6 @@
+@use '../catalogo';
+
+// Alineada a la izquierda, igual que su encabezado y el resto de las columnas.
+.celda-precio {
+  font-variant-numeric: tabular-nums;
+}

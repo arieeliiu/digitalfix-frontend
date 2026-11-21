@@ -1,0 +1,94 @@
+<main class="pagina" [attr.aria-busy]="cargando()">
+  <header class="encabezado-pagina">
+    <h1 id="titulo-repuestos">Repuestos</h1>
+    <div class="acciones-header">
+      <df-boton-icono icono="actualizar" etiqueta="Actualizar" [cargando]="cargando()" [deshabilitado]="ocupado()" (accion)="cargar()" />
+      @if (esAdmin()) {
+        <df-boton-icono icono="crear" etiqueta="Nuevo repuesto" [deshabilitado]="ocupado() || formulario()" (accion)="abrir()" />
+      }
+    </div>
+  </header>
+
+  @if (mensaje()) { <p role="status">{{ mensaje() }}</p> }
+  <!-- Los errores al eliminar se muestran dentro de su ventana emergente. -->
+  @if (errorOperacion() && !pendienteEliminar()) { <p class="mensaje-error" role="alert">{{ errorOperacion() }}</p> }
+
+  @if (esAdmin() && formulario()) {
+    <form class="formulario-catalogo" aria-labelledby="form-repuesto" (ngSubmit)="guardar()">
+      <h2 id="form-repuesto">{{ datos.id === null ? 'Nuevo repuesto' : 'Editar repuesto' }}</h2>
+      <fieldset [disabled]="ocupado()">
+        <label for="repuesto-nombre">Nombre</label>
+        <input id="repuesto-nombre" name="nombre" [(ngModel)]="datos.nombre" required />
+        <label for="repuesto-descripcion">Descripción</label>
+        <textarea id="repuesto-descripcion" name="descripcion" [(ngModel)]="datos.descripcion" rows="3" required></textarea>
+        <label for="repuesto-stock">Stock</label>
+        <input id="repuesto-stock" name="stock" type="number" [(ngModel)]="datos.stock" min="0" step="1" required />
+        <div class="acciones-header">
+          <button type="submit" class="btn btn-primario" [disabled]="ocupado()">{{ guardando() ? 'Guardando...' : 'Guardar repuesto' }}</button>
+          <button type="button" class="btn btn-secundario" (click)="cancelar()">Cancelar</button>
+        </div>
+      </fieldset>
+    </form>
+  }
+
+  @if (cargando()) { <p role="status">Cargando repuestos...</p> }
+  @if (error()) {
+    <p class="mensaje-error" role="alert">No se pudieron cargar los repuestos. {{ error() }}</p>
+  }
+  @if (!cargando() && !error()) {
+    @if (repuestos().length === 0) {
+      <p>No hay repuestos disponibles todavía.</p>
+    } @else {
+      <div class="tabla-contenedor">
+        <table class="tabla" aria-labelledby="titulo-repuestos">
+          <thead>
+            <tr><th>Repuesto</th><th>Descripción</th><th>Stock</th>@if (esAdmin()) { <th>Acciones</th> }</tr>
+          </thead>
+          <tbody>
+            @for (repuesto of repuestos(); track repuesto.id) {
+              <tr>
+                <td class="celda-nombre">{{ repuesto.nombre }}</td>
+                <td class="celda-descripcion">{{ repuesto.descripcion?.trim() || 'Sin descripción' }}</td>
+                <!-- Solo el número: el encabezado "Stock" ya dice qué es. -->
+                <td class="celda-stock">
+                  @if (repuesto.stock === 0) {
+                    <span class="badge sin-stock">Sin stock</span>
+                  } @else {
+                    {{ repuesto.stock }}
+                  }
+                </td>
+                @if (esAdmin()) {
+                  <td>
+                    <div class="acciones-header">
+                      <button type="button" class="btn btn-secundario" (click)="abrir(repuesto)" [disabled]="ocupado() || formulario()"
+                        [attr.aria-label]="'Editar repuesto ' + repuesto.nombre">Editar</button>
+                      <button type="button" class="btn btn-peligro" (click)="solicitarEliminacion(repuesto)" [disabled]="ocupado() || formulario()"
+                        [attr.aria-label]="'Eliminar repuesto ' + repuesto.nombre">Eliminar</button>
+                    </div>
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+
+  <dialog #modalEliminacion class="modal-orden modal-confirmacion" aria-modal="true" aria-labelledby="eliminar-repuesto"
+    aria-describedby="texto-eliminar-repuesto" (cancel)="alCancelarEliminacion($event)">
+    @if (pendienteEliminar(); as pendiente) {
+      <div class="modal-orden__contenido">
+        <h2 id="eliminar-repuesto">¿Eliminar el repuesto {{ pendiente.nombre }}?</h2>
+        @if (errorOperacion()) { <p class="mensaje-error" role="alert">{{ errorOperacion() }}</p> }
+        <p id="texto-eliminar-repuesto">Esta acción no se puede deshacer.</p>
+        <div class="acciones-modal">
+          <button type="button" class="btn btn-secundario" (click)="cerrarEliminacion()" [disabled]="eliminando()">Conservar repuesto</button>
+          <button type="button" class="btn btn-peligro" (click)="eliminar()" [disabled]="ocupado()">
+            {{ eliminando() ? 'Eliminando...' : 'Confirmar eliminación' }}
+          </button>
+        </div>
+      </div>
+    }
+  </dialog>
+</main>

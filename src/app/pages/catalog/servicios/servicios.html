@@ -1,0 +1,87 @@
+<main class="pagina" [attr.aria-busy]="cargando()">
+  <header class="encabezado-pagina">
+    <h1 id="titulo-servicios">Servicios técnicos</h1>
+    <div class="acciones-header">
+      <df-boton-icono icono="actualizar" etiqueta="Actualizar" [cargando]="cargando()" [deshabilitado]="ocupado()" (accion)="cargar()" />
+      @if (esAdmin()) {
+        <df-boton-icono icono="crear" etiqueta="Nuevo servicio" [deshabilitado]="ocupado() || formulario()" (accion)="abrir()" />
+      }
+    </div>
+  </header>
+
+  @if (mensaje()) { <p role="status">{{ mensaje() }}</p> }
+  <!-- Los errores al eliminar se muestran dentro de su ventana emergente. -->
+  @if (errorOperacion() && !pendienteEliminar()) { <p class="mensaje-error" role="alert">{{ errorOperacion() }}</p> }
+
+  @if (esAdmin() && formulario()) {
+    <form class="formulario-catalogo" aria-labelledby="form-servicio" (ngSubmit)="guardar()">
+      <h2 id="form-servicio">{{ datos.id === null ? 'Nuevo servicio' : 'Editar servicio' }}</h2>
+      <fieldset [disabled]="ocupado()">
+        <label for="servicio-nombre">Nombre</label>
+        <input id="servicio-nombre" name="nombre" [(ngModel)]="datos.nombre" required />
+        <label for="servicio-descripcion">Descripción (opcional)</label>
+        <textarea id="servicio-descripcion" name="descripcion" [(ngModel)]="datos.descripcion" rows="3"></textarea>
+        <label for="servicio-tarifa">Tarifa (CLP)</label>
+        <input id="servicio-tarifa" name="tarifa" type="number" [(ngModel)]="datos.tarifa" min="0" step="any" required />
+        <div class="acciones-header">
+          <button type="submit" class="btn btn-primario" [disabled]="ocupado()">{{ guardando() ? 'Guardando...' : 'Guardar servicio' }}</button>
+          <button type="button" class="btn btn-secundario" (click)="cancelar()">Cancelar</button>
+        </div>
+      </fieldset>
+    </form>
+  }
+
+  @if (cargando()) { <p role="status">Cargando servicios...</p> }
+  @if (error()) {
+    <p class="mensaje-error" role="alert">No se pudieron cargar los servicios. {{ error() }}</p>
+  }
+  @if (!cargando() && !error()) {
+    @if (servicios().length === 0) {
+      <p>No hay servicios disponibles todavía.</p>
+    } @else {
+      <div class="tabla-contenedor">
+        <table class="tabla" aria-labelledby="titulo-servicios">
+          <thead>
+            <tr><th>Servicio</th><th>Descripción</th><th>Tarifa</th>@if (esAdmin()) { <th>Acciones</th> }</tr>
+          </thead>
+          <tbody>
+            @for (servicio of servicios(); track servicio.id) {
+              <tr>
+                <td class="celda-nombre">{{ servicio.nombre }}</td>
+                <td class="celda-descripcion">{{ servicio.descripcion?.trim() || 'Sin descripción' }}</td>
+                <td class="celda-precio">{{ servicio.tarifa | currency: 'CLP' : 'code' : '1.0-0' }}</td>
+                @if (esAdmin()) {
+                  <td>
+                    <div class="acciones-header">
+                      <button type="button" class="btn btn-secundario" (click)="abrir(servicio)" [disabled]="ocupado() || formulario()"
+                        [attr.aria-label]="'Editar servicio ' + servicio.nombre">Editar</button>
+                      <button type="button" class="btn btn-peligro" (click)="solicitarEliminacion(servicio)" [disabled]="ocupado() || formulario()"
+                        [attr.aria-label]="'Eliminar servicio ' + servicio.nombre">Eliminar</button>
+                    </div>
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+
+  <dialog #modalEliminacion class="modal-orden modal-confirmacion" aria-modal="true" aria-labelledby="eliminar-servicio"
+    aria-describedby="texto-eliminar-servicio" (cancel)="alCancelarEliminacion($event)">
+    @if (pendienteEliminar(); as pendiente) {
+      <div class="modal-orden__contenido">
+        <h2 id="eliminar-servicio">¿Eliminar el servicio {{ pendiente.nombre }}?</h2>
+        @if (errorOperacion()) { <p class="mensaje-error" role="alert">{{ errorOperacion() }}</p> }
+        <p id="texto-eliminar-servicio">Esta acción no se puede deshacer.</p>
+        <div class="acciones-modal">
+          <button type="button" class="btn btn-secundario" (click)="cerrarEliminacion()" [disabled]="eliminando()">Conservar servicio</button>
+          <button type="button" class="btn btn-peligro" (click)="eliminar()" [disabled]="ocupado()">
+            {{ eliminando() ? 'Eliminando...' : 'Confirmar eliminación' }}
+          </button>
+        </div>
+      </div>
+    }
+  </dialog>
+</main>

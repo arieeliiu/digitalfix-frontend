@@ -371,7 +371,7 @@ describe('Repuestos y permisos de órdenes', () => {
     expect(resumen).toContain('Asignada 1');
   });
 
-  it('muestra el técnico en segundo plano y agrupa las cerradas en un submenú plegado', async () => {
+  it('muestra el técnico en segundo plano y deja las cerradas en la misma lista', async () => {
     const { pagina, fixture, root } = await preparar();
     pagina['servicios'].set([{ id: 1, nombre: 'Mantención', descripcion: '', tarifa: 25000 }]);
     pagina['ordenes'].set([
@@ -382,19 +382,12 @@ describe('Repuestos y permisos de órdenes', () => {
     expect(root.querySelector('#resumen-orden-42 .tecnico')?.textContent).toContain('tecnico@example.org');
     expect(root.querySelector('#resumen-orden-50 .tecnico')?.textContent).toContain('Sin técnico asignado');
 
-    const activas = root.querySelector('.lista-ordenes:not(#lista-cerradas)')!;
-    expect(activas.querySelector('#resumen-orden-42')).not.toBeNull();
-    expect(activas.querySelector('#resumen-orden-50')).toBeNull();
-    expect(root.querySelector('#lista-cerradas #resumen-orden-50')).not.toBeNull();
-
-    const boton = root.querySelector('#boton-cerradas') as HTMLButtonElement;
-    const panel = root.querySelector('#boton-cerradas-panel') as HTMLElement & { inert: boolean };
-    expect(boton.textContent).toContain('Órdenes cerradas');
-    expect(boton.getAttribute('aria-expanded')).toBe('false');
-    expect(panel.inert).toBe(true);
-    boton.click(); fixture.detectChanges();
-    expect(boton.getAttribute('aria-expanded')).toBe('true');
-    expect(panel.inert).toBe(false);
+    // Separar las cerradas es tarea del filtro de estado, no de un submenú aparte.
+    const listas = root.querySelectorAll('.lista-ordenes');
+    expect(listas.length).toBe(1);
+    expect(listas[0].querySelector('#resumen-orden-42')).not.toBeNull();
+    expect(listas[0].querySelector('#resumen-orden-50')).not.toBeNull();
+    expect(root.querySelector('#boton-cerradas')).toBeNull();
   });
 
   it('los filtros por texto, estado y servicio reducen la lista y se pueden limpiar', async () => {

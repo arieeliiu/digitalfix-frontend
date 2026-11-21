@@ -96,52 +96,37 @@
         <p class="sin-resultados">Ninguna orden coincide con los filtros.</p>
       } @else {
         <!-- Cada orden se resume en una fila y se despliega para ver el resto: menos ruido al escanear. -->
-        @if (ordenesActivas().length > 0) {
-          <ul class="lista-ordenes" aria-labelledby="titulo-ordenes">
-            @for (orden of ordenesActivas(); track orden.id) {
-              <li><ng-container *ngTemplateOutlet="itemOrden; context: { $implicit: orden }" /></li>
-            }
-          </ul>
-        } @else {
-          <p class="sin-resultados">No hay órdenes activas.</p>
-        }
-        @if (ordenesCerradas().length > 0) {
-          <app-grupo-plegable titulo="Órdenes cerradas" idBoton="boton-cerradas" [cantidad]="ordenesCerradas().length">
-            <ul id="lista-cerradas" class="lista-ordenes" aria-labelledby="boton-cerradas">
-              @for (orden of ordenesCerradas(); track orden.id) {
-                <li><ng-container *ngTemplateOutlet="itemOrden; context: { $implicit: orden }" /></li>
-              }
-            </ul>
-          </app-grupo-plegable>
-        }
+        <ul class="lista-ordenes" aria-labelledby="titulo-ordenes">
+          @for (orden of ordenesFiltradas(); track orden.id) {
+            <li>
+              <app-orden-desplegable
+                [orden]="orden"
+                [nombreServicio]="nombreServicio(orden.servicioId)"
+                [abierta]="estaExpandida(orden.id)"
+                (alternar)="alternarOrden(orden.id)"
+              >
+                <div class="acciones-orden">
+                  <!-- Si toca asignar técnico, el botón lo dice; si no, abre el detalle para consultar. -->
+                  <button type="button" class="btn btn-secundario" (click)="consultar(orden.id)" [disabled]="ocupado()">
+                    {{ porAsignar(orden) ? 'Asignar' : 'Consultar' }}
+                  </button>
+                  @if (puedeEditar(orden)) {
+                    <button type="button" class="btn btn-secundario" (click)="editar(orden.id)" [disabled]="ocupado()">Editar</button>
+                  }
+                  @if (puedeCancelar(orden)) {
+                    <button type="button" class="btn btn-cancelar" (click)="solicitarCancelacion(orden)" [disabled]="ocupado()">Cancelar orden</button>
+                  }
+                  @if (puedeEliminar(orden)) {
+                    <df-boton-icono class="accion-eliminar" icono="eliminar" [etiqueta]="'Eliminar orden #' + orden.id"
+                      [deshabilitado]="ocupado()" (accion)="solicitarEliminacion(orden)" />
+                  }
+                </div>
+              </app-orden-desplegable>
+            </li>
+          }
+        </ul>
       }
     }
-    <!-- Plantilla única del ítem, usada por la lista activa y por el grupo de cerradas. -->
-    <ng-template #itemOrden let-orden>
-      <app-orden-desplegable
-        [orden]="orden"
-        [nombreServicio]="nombreServicio(orden.servicioId)"
-        [abierta]="estaExpandida(orden.id)"
-        (alternar)="alternarOrden(orden.id)"
-      >
-        <div class="acciones-orden">
-          <!-- Si toca asignar técnico, el botón lo dice; si no, abre el detalle para consultar. -->
-          <button type="button" class="btn btn-secundario" (click)="consultar(orden.id)" [disabled]="ocupado()">
-            {{ porAsignar(orden) ? 'Asignar' : 'Consultar' }}
-          </button>
-          @if (puedeEditar(orden)) {
-            <button type="button" class="btn btn-secundario" (click)="editar(orden.id)" [disabled]="ocupado()">Editar</button>
-          }
-          @if (puedeCancelar(orden)) {
-            <button type="button" class="btn btn-cancelar" (click)="solicitarCancelacion(orden)" [disabled]="ocupado()">Cancelar orden</button>
-          }
-          @if (puedeEliminar(orden)) {
-            <df-boton-icono class="accion-eliminar" icono="eliminar" [etiqueta]="'Eliminar orden #' + orden.id"
-              [deshabilitado]="ocupado()" (accion)="solicitarEliminacion(orden)" />
-          }
-        </div>
-      </app-orden-desplegable>
-    </ng-template>
     <!-- Confirmación de eliminación como ventana emergente, igual que la de cancelar. -->
     <dialog #modalEliminacion class="modal-orden modal-confirmacion" aria-modal="true" aria-labelledby="confirmar-eliminacion"
       aria-describedby="texto-eliminacion" (cancel)="alCancelarEliminacion($event)">

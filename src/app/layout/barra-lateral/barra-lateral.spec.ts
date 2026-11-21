@@ -23,7 +23,8 @@ describe('Barra lateral', () => {
         provideRouter([
           { path: 'dashboard', component: PaginaPrueba },
           { path: 'workorders', component: PaginaPrueba },
-          { path: 'catalog', component: PaginaPrueba },
+          { path: 'catalog/servicios', component: PaginaPrueba },
+          { path: 'catalog/repuestos', component: PaginaPrueba },
         ]),
         {
           provide: ServicioAutenticacion,
@@ -53,8 +54,8 @@ describe('Barra lateral', () => {
   }
 
   it.each([
-    ['Admin', ['Dashboard', 'Órdenes de trabajo', 'Catálogo']],
-    ['Operador', ['Dashboard', 'Órdenes de trabajo', 'Catálogo']],
+    ['Admin', ['Dashboard', 'Órdenes de trabajo', 'Servicios', 'Repuestos']],
+    ['Operador', ['Dashboard', 'Órdenes de trabajo', 'Servicios', 'Repuestos']],
     ['Cliente', ['Dashboard', 'Órdenes de trabajo']],
     ['Auditor', ['Dashboard']],
   ])('muestra al rol %s solo los módulos a los que puede entrar', (rol, esperados) => {
@@ -71,7 +72,7 @@ describe('Barra lateral', () => {
     roles.set(['Operador']);
     fixture.detectChanges();
 
-    expect(etiquetasEnlaces(root)).toContain('Catálogo');
+    expect(etiquetasEnlaces(root)).toContain('Repuestos');
   });
 
   it('cada enlace lleva un icono decorativo oculto a lectores de pantalla', () => {
@@ -86,13 +87,13 @@ describe('Barra lateral', () => {
   it('marca la página actual con aria-current', async () => {
     roles.set(['Admin']);
     const harness = await RouterTestingHarness.create();
-    await harness.navigateByUrl('/catalog');
+    await harness.navigateByUrl('/catalog/repuestos');
     const { fixture, root } = crear();
     await fixture.whenStable();
     fixture.detectChanges();
 
     const actual = root.querySelector('nav a[aria-current="page"]');
-    expect(actual?.textContent?.trim()).toBe('Catálogo');
+    expect(actual?.textContent?.trim()).toBe('Repuestos');
   });
 
   it('muestra el usuario y su rol, y permite cerrar sesión', () => {

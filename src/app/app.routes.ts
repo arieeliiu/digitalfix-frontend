@@ -7,7 +7,8 @@ import { PaginaAccesoDenegado } from './pages/acceso-denegado/acceso-denegado';
 
 import { PaginaDashboard } from './pages/dashboard/dashboard';
 import { PaginaWorkOrders } from './pages/workorders/workorders';
-import { PaginaCatalog } from './pages/catalog/catalog';
+import { PaginaServicios } from './pages/catalog/servicios/servicios';
+import { PaginaRepuestos } from './pages/catalog/repuestos/repuestos';
 
 import { protegerPorRol } from './guards/roles.guard';
 
@@ -33,12 +34,24 @@ export const routes: Routes = [
     data: { roles: ['Admin', 'Operador', 'Cliente'] },
   },
 
-  // Catálogo de lectura para los roles que gestionan servicios y repuestos.
+  // Catálogo en dos páginas: servicios técnicos y repuestos. Admin edita; Operador solo lee.
   {
-    path: 'catalog',
-    component: PaginaCatalog,
+    path: 'catalog/servicios',
+    component: PaginaServicios,
     canActivate: [protegerPorRol],
     data: { roles: ['Admin', 'Operador'] },
+  },
+  {
+    path: 'catalog/repuestos',
+    component: PaginaRepuestos,
+    canActivate: [protegerPorRol],
+    data: { roles: ['Admin', 'Operador'] },
+  },
+  // La dirección anterior del catálogo abre servicios, para no romper bookmarks.
+  {
+    path: 'catalog',
+    pathMatch: 'full',
+    redirectTo: 'catalog/servicios',
   },
 
   // Muestra un mensaje cuando la autenticación no puede completarse.

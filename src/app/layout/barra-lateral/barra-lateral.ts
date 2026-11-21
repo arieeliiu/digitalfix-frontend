@@ -4,7 +4,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
 
 import { ServicioAutenticacion } from '../../services/auth.service';
 
-type IconoEnlace = 'dashboard' | 'ordenes' | 'catalogo';
+type IconoEnlace = 'dashboard' | 'ordenes' | 'servicios' | 'repuestos';
 
 interface EnlaceNavegacion {
   ruta: string;
@@ -17,7 +17,8 @@ interface EnlaceNavegacion {
 const ENLACES: EnlaceNavegacion[] = [
   { ruta: '/dashboard', etiqueta: 'Dashboard', icono: 'dashboard', roles: [] },
   { ruta: '/workorders', etiqueta: 'Órdenes de trabajo', icono: 'ordenes', roles: ['Admin', 'Operador', 'Cliente'] },
-  { ruta: '/catalog', etiqueta: 'Catálogo', icono: 'catalogo', roles: ['Admin', 'Operador'] },
+  { ruta: '/catalog/servicios', etiqueta: 'Servicios', icono: 'servicios', roles: ['Admin', 'Operador'] },
+  { ruta: '/catalog/repuestos', etiqueta: 'Repuestos', icono: 'repuestos', roles: ['Admin', 'Operador'] },
 ];
 
 @Component({
