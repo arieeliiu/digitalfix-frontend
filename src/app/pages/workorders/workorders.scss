@@ -34,10 +34,15 @@ fieldset input, fieldset select, fieldset textarea {
 
 // ── Lista desplegable de órdenes ─────────────────────────────────────────────
 
+// Tres columnas: título a la izquierda, resumen centrado y una columna vacía que lo equilibra.
 .encabezado-lista {
-  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
   gap: var(--df-esp-3); margin-bottom: var(--df-esp-3);
-  h2 { margin: 0; }
+  // Subtítulo discreto: no compite con el h1 "Órdenes de trabajo".
+  h2 { margin: 0; font-size: 16px; font-weight: 600; color: var(--df-texto-secundario); }
+}
+@media (max-width: 760px) {
+  .encabezado-lista { grid-template-columns: 1fr; }
 }
 .resumen-estados {
   display: flex; flex-wrap: wrap; align-items: center; gap: var(--df-esp-2) var(--df-esp-4);
