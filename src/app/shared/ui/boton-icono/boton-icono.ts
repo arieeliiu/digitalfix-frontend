@@ -1,9 +1,9 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 
-export type IconoBoton = 'actualizar' | 'crear' | 'eliminar';
+export type IconoBoton = 'actualizar' | 'crear' | 'editar' | 'eliminar';
 
-// Botón solo con icono para acciones recurrentes: recargar datos (↻), crear algo nuevo (+)
-// y eliminar (basurero, discreto hasta que se apunta).
+// Botón solo con icono para acciones recurrentes: recargar datos (↻), crear algo nuevo (+),
+// editar (lápiz) y eliminar (basurero). Editar y eliminar son discretos hasta que se apuntan.
 // La etiqueta va en aria-label y en un tooltip visible al pasar el mouse o enfocar con teclado.
 @Component({
   selector: 'df-boton-icono',

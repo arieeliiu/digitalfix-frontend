@@ -78,7 +78,7 @@ describe('Catálogo de servicios', () => {
     return root.querySelector('dialog[aria-labelledby="eliminar-servicio"]') as HTMLDialogElement;
   }
 
-  it('muestra carga y luego servicios, tarifa en CLP y descripción', async () => {
+  it('muestra carga y luego servicios, tarifa sin moneda en cada celda y descripción', async () => {
     const { fixture, root, consulta } = preparar();
     expect(root.textContent).toContain('Cargando servicios');
     expect(boton(root, 'Actualizar').disabled).toBe(true);
@@ -88,7 +88,9 @@ describe('Catálogo de servicios', () => {
     const filas = root.querySelectorAll('tbody tr');
     expect(filas).toHaveLength(2);
     expect(filas[0].textContent).toContain('Revisión técnica');
-    expect(filas[0].querySelector('.celda-precio')?.textContent).toMatch(/CLP\s*25[.,]000/);
+    // La moneda va solo en el encabezado de la columna.
+    expect(root.querySelector('thead')?.textContent).toContain('Tarifa (CLP)');
+    expect(filas[0].querySelector('.celda-precio')?.textContent?.trim()).toMatch(/^25[.,]000$/);
     expect(filas[1].textContent).toContain('Sin descripción');
     expect(boton(root, 'Actualizar').disabled).toBe(false);
   });
@@ -143,6 +145,26 @@ describe('Catálogo de servicios', () => {
     expect(root.querySelector('form')).toBeNull();
     expect(root.textContent).toContain('Respuesta del servidor');
     expect(root.textContent).toContain('Servicio guardado correctamente.');
+  });
+
+  it('el formulario se abre en una ventana emergente y Cerrar o Escape la cierran sin guardar', async () => {
+    const { fixture, root } = await prepararAdmin();
+    const ventana = root.querySelector('dialog[aria-labelledby="form-servicio"]') as HTMLDialogElement;
+    expect(ventana.open).toBe(false);
+    boton(root, 'Nuevo servicio').click(); fixture.detectChanges();
+    expect(ventana.open).toBe(true);
+    expect(ventana.querySelector('form')).not.toBeNull();
+    expect(ventana.querySelector('label[for="servicio-nombre"]')?.textContent).toContain('Nombre');
+    boton(ventana, 'Cerrar formulario de servicio').click(); fixture.detectChanges();
+    expect(ventana.open).toBe(false);
+    expect(root.querySelector('form')).toBeNull();
+
+    boton(root, 'Editar servicio Mantención').click(); fixture.detectChanges();
+    const evento = new Event('cancel', { cancelable: true });
+    ventana.dispatchEvent(evento); fixture.detectChanges();
+    expect(evento.defaultPrevented).toBe(true);
+    expect(ventana.open).toBe(false);
+    http.expectNone(r => r.method !== 'GET');
   });
 
   it('eliminar abre una ventana emergente, Conservar la cierra y Confirmar envía un solo DELETE', async () => {

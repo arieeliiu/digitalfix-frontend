@@ -3,6 +3,7 @@
   class="boton"
   [class.boton--crear]="icono() === 'crear'"
   [class.boton--actualizar]="icono() === 'actualizar'"
+  [class.boton--editar]="icono() === 'editar'"
   [class.boton--eliminar]="icono() === 'eliminar'"
   [class.boton--cargando]="cargando()"
   [attr.id]="idBoton()"
@@ -15,6 +16,10 @@
   @if (icono() === 'crear') {
     <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" class="icono">
       <path d="M12 5v14M5 12h14" />
+    </svg>
+  } @else if (icono() === 'editar') {
+    <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" class="icono">
+      <path d="M4 20h4L19 9l-4-4L4 16v4zM14 6l4 4" />
     </svg>
   } @else if (icono() === 'eliminar') {
     <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" class="icono">

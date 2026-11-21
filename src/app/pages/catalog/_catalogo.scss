@@ -1,5 +1,5 @@
-// Estilos comunes a las páginas de servicios y repuestos (tabla y formulario).
-// Los botones y las ventanas emergentes vienen de los estilos globales.
+// Estilos comunes a las páginas de servicios y repuestos (tabla).
+// Botones, ventanas emergentes y campos de formulario vienen de los estilos globales.
 
 :host {
   display: block;
@@ -8,41 +8,6 @@
 .tabla-contenedor {
   overflow-x: auto;
   margin-top: var(--df-esp-5);
-}
-
-.formulario-catalogo {
-  margin-top: var(--df-esp-4);
-  padding: 20px;
-  border: 1px solid var(--df-borde);
-  border-radius: var(--df-radio-lg);
-  background: var(--df-superficie);
-
-  h2 {
-    margin: 0 0 var(--df-esp-3);
-    font-size: 18px;
-  }
-
-  fieldset {
-    display: grid;
-    gap: 10px;
-    min-width: 0;
-    padding: 0;
-    border: 0;
-  }
-
-  label {
-    font-weight: 700;
-  }
-
-  input,
-  textarea {
-    box-sizing: border-box;
-    width: 100%;
-    padding: 10px;
-    border: 1px solid var(--df-borde-control);
-    border-radius: var(--df-radio-sm);
-    font: inherit;
-  }
 }
 
 .tabla {
@@ -81,4 +46,9 @@
   color: var(--df-texto-secundario);
   font-size: 13px;
   overflow-wrap: anywhere;
+}
+
+.acciones-fila {
+  display: flex;
+  gap: var(--df-esp-2);
 }

@@ -112,6 +112,156 @@ body {
   .modal-orden__contenido { padding: 18px; }
 }
 
+// ── Formularios en ventana emergente ─────────────────────────────────────────
+// Mismo esquema que el detalle de una orden: encabezado con título y Cerrar,
+// campos con etiqueta en negrita y un pie fijo con las acciones.
+
+.modal-formulario {
+  width: min(720px, calc(100% - 32px));
+  overflow: hidden;
+
+  .modal-orden__contenido {
+    display: flex;
+    flex-direction: column;
+    max-height: 90dvh;
+    box-sizing: border-box;
+  }
+
+  // El fieldset ocupa el alto disponible: el cuerpo se desplaza y el pie queda a la vista.
+  // Sin el borde y el relleno que el navegador le da a todo fieldset.
+  .formulario-modal {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+}
+
+.modal-formulario form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.modal-encabezado {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--df-esp-4);
+  flex: none;
+  margin-bottom: var(--df-esp-4);
+  padding-bottom: var(--df-esp-3);
+  border-bottom: 1px solid var(--df-borde);
+
+  h2 { margin: 0; }
+}
+
+.formulario-cuerpo {
+  display: grid;
+  align-content: start;
+  gap: var(--df-esp-4);
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.campos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--df-esp-4) 20px;
+}
+
+.campo {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  min-width: 0;
+
+  label {
+    color: var(--df-texto);
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  input,
+  select,
+  textarea {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--df-borde-control);
+    border-radius: var(--df-radio-md);
+    background: var(--df-superficie);
+    color: var(--df-texto);
+    font: inherit;
+    font-size: 15px;
+
+    &:focus-visible {
+      outline: none;
+      border-color: var(--df-primario);
+      box-shadow: 0 0 0 3px var(--df-primario-suave);
+    }
+
+    &:disabled {
+      background: var(--df-fondo);
+      color: var(--df-texto-tenue);
+    }
+  }
+
+  textarea {
+    min-height: 96px;
+    line-height: 1.5;
+    resize: vertical;
+  }
+}
+
+.campo--ancho { grid-column: 1 / -1; }
+
+// Ayuda bajo el campo: a la izquierda qué se espera, a la derecha el contador.
+.campo__ayuda {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--df-esp-3);
+  margin: 0;
+  color: var(--df-texto-tenue);
+  font-size: 13px;
+}
+
+.campo__error {
+  margin: 0;
+  color: var(--df-peligro-texto);
+  font-size: 13px;
+}
+
+.seccion-formulario {
+  display: grid;
+  gap: var(--df-esp-3);
+  padding-top: var(--df-esp-4);
+  border-top: 1px solid var(--df-borde);
+
+  h3 { margin: 0; font-size: 15px; }
+}
+
+.pie-formulario {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  flex: none;
+  margin-top: var(--df-esp-4);
+  padding-top: var(--df-esp-4);
+  border-top: 1px solid var(--df-borde);
+}
+
+@media (max-width: 560px) {
+  .campos { grid-template-columns: minmax(0, 1fr); }
+}
+
 // ── Botones ──────────────────────────────────────────────────────────────────
 // Mismos valores que ya definían órdenes y catálogo. Las páginas que aún los redefinen
 // (catálogo) ganan por especificidad, así que su aspecto no cambia.
