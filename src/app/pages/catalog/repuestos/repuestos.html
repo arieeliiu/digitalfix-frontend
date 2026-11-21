@@ -49,11 +49,12 @@
               <tr>
                 <td class="celda-nombre">{{ repuesto.nombre }}</td>
                 <td class="celda-descripcion">{{ repuesto.descripcion?.trim() || 'Sin descripción' }}</td>
-                <td>
+                <!-- Solo el número: el encabezado "Stock" ya dice qué es. -->
+                <td class="celda-stock">
                   @if (repuesto.stock === 0) {
                     <span class="badge sin-stock">Sin stock</span>
                   } @else {
-                    {{ repuesto.stock }} {{ repuesto.stock === 1 ? 'unidad' : 'unidades' }}
+                    {{ repuesto.stock }}
                   }
                 </td>
                 @if (esAdmin()) {

@@ -88,10 +88,12 @@ describe('Catálogo de repuestos', () => {
     expect(root.querySelector('h1')?.textContent).toContain('Repuestos');
     const filas = root.querySelectorAll('tbody tr');
     expect(filas[0].textContent).toContain('Cable eléctrico');
-    expect(filas[0].textContent).toContain('10 unidades');
+    // Solo el número, sin la palabra "unidades".
+    expect(filas[0].querySelector('.celda-stock')?.textContent?.trim()).toBe('10');
+    expect(root.querySelector('tbody')?.textContent).not.toMatch(/unidad/);
     expect(filas[1].textContent).toContain('Sin stock');
     expect(filas[1].textContent).toContain('Sin descripción');
-    expect(filas[2].textContent).toContain('1 unidad');
+    expect(filas[2].querySelector('.celda-stock')?.textContent?.trim()).toBe('1');
     expect(filas[2].textContent).toContain('Sin descripción');
     expect(boton(root, 'Actualizar').disabled).toBe(false);
   });
@@ -116,7 +118,7 @@ describe('Catálogo de repuestos', () => {
     expect(root.querySelector('[role="alert"]')).toBeNull();
     expect(root.querySelectorAll('tbody tr')).toHaveLength(1);
     expect(root.textContent).toContain('Sin stock');
-    expect(root.textContent).not.toContain('10 unidades');
+    expect(root.querySelector('.celda-stock')?.textContent?.trim()).not.toBe('10');
   });
 
   it.each(['crear', 'editar'])('Admin puede %s un repuesto y refresca desde el backend', async operacion => {
@@ -145,7 +147,7 @@ describe('Catálogo de repuestos', () => {
     await fixture.whenStable(); fixture.detectChanges();
     expect(root.querySelector('form')).toBeNull();
     expect(root.textContent).toContain('Respuesta del servidor');
-    expect(root.textContent).toContain('4 unidades');
+    expect(root.querySelector('.celda-stock')?.textContent?.trim()).toBe('4');
   });
 
   it('eliminar abre una ventana emergente, Conservar la cierra y Confirmar envía un solo DELETE', async () => {
