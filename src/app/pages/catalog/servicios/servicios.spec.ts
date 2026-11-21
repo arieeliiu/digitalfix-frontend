@@ -78,7 +78,7 @@ describe('Catálogo de servicios', () => {
     return root.querySelector('dialog[aria-labelledby="eliminar-servicio"]') as HTMLDialogElement;
   }
 
-  it('muestra carga y luego servicios, tarifa en CLP y descripción', async () => {
+  it('muestra carga y luego servicios, tarifa sin moneda en cada celda y descripción', async () => {
     const { fixture, root, consulta } = preparar();
     expect(root.textContent).toContain('Cargando servicios');
     expect(boton(root, 'Actualizar').disabled).toBe(true);
@@ -88,7 +88,9 @@ describe('Catálogo de servicios', () => {
     const filas = root.querySelectorAll('tbody tr');
     expect(filas).toHaveLength(2);
     expect(filas[0].textContent).toContain('Revisión técnica');
-    expect(filas[0].querySelector('.celda-precio')?.textContent).toMatch(/CLP\s*25[.,]000/);
+    // La moneda va solo en el encabezado de la columna.
+    expect(root.querySelector('thead')?.textContent).toContain('Tarifa (CLP)');
+    expect(filas[0].querySelector('.celda-precio')?.textContent?.trim()).toMatch(/^25[.,]000$/);
     expect(filas[1].textContent).toContain('Sin descripción');
     expect(boton(root, 'Actualizar').disabled).toBe(false);
   });

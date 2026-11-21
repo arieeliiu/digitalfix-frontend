@@ -65,14 +65,14 @@
       <div class="tabla-contenedor">
         <table class="tabla" aria-labelledby="titulo-servicios">
           <thead>
-            <tr><th>Servicio</th><th>Descripción</th><th>Tarifa</th>@if (esAdmin()) { <th>Acciones</th> }</tr>
+            <tr><th>Servicio</th><th>Descripción</th><th>Tarifa (CLP)</th>@if (esAdmin()) { <th>Acciones</th> }</tr>
           </thead>
           <tbody>
             @for (servicio of servicios(); track servicio.id) {
               <tr>
                 <td class="celda-nombre">{{ servicio.nombre }}</td>
                 <td class="celda-descripcion">{{ servicio.descripcion?.trim() || 'Sin descripción' }}</td>
-                <td class="celda-precio">{{ servicio.tarifa | currency: 'CLP' : 'code' : '1.0-0' }}</td>
+                <td class="celda-precio">{{ servicio.tarifa | number: '1.0-0' }}</td>
                 @if (esAdmin()) {
                   <td>
                     <div class="acciones-header">

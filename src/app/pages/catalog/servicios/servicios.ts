@@ -1,5 +1,5 @@
 import { Component, computed, ElementRef, inject, OnInit, signal, ViewChild } from '@angular/core';
-import { CurrencyPipe } from '@angular/common';
+import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 
@@ -11,7 +11,7 @@ import { BotonIcono } from '../../../shared/ui/boton-icono/boton-icono';
 // Catálogo de servicios técnicos. Admin lo edita; Operador solo lo lee.
 @Component({
   selector: 'app-servicios',
-  imports: [CurrencyPipe, FormsModule, BotonIcono],
+  imports: [DecimalPipe, FormsModule, BotonIcono],
   templateUrl: './servicios.html',
   styleUrl: './servicios.scss',
 })
