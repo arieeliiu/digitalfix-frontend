@@ -10,6 +10,7 @@ import { ServicioApi } from './services/api.service';
 import { PaginaServicios } from './pages/catalog/servicios/servicios';
 import { PaginaRepuestos } from './pages/catalog/repuestos/repuestos';
 import { PaginaAccesoDenegado } from './pages/acceso-denegado/acceso-denegado';
+import { PaginaHistorial } from './pages/historial/historial';
 
 describe('Acceso a las rutas reales del catálogo', () => {
   let rol: string;
@@ -55,5 +56,13 @@ describe('Acceso a las rutas reales del catálogo', () => {
     expect(TestBed.inject(Router).url).toBe('/acceso-denegado');
     expect(api.listarServicios).not.toHaveBeenCalled();
     expect(api.listarRepuestos).not.toHaveBeenCalled();
+  });
+
+  it.each(['Admin', 'Auditor', 'Operador', 'Cliente'])('historial respeta el rol %s sin ampliar acceso a órdenes', async valor => {
+    rol = valor;
+    const harness = await RouterTestingHarness.create();
+    if (['Admin', 'Auditor'].includes(rol)) await harness.navigateByUrl('/historial', PaginaHistorial);
+    else await harness.navigateByUrl('/historial', PaginaAccesoDenegado);
+    expect(TestBed.inject(Router).url).toBe(['Admin', 'Auditor'].includes(rol) ? '/historial' : '/acceso-denegado');
   });
 });

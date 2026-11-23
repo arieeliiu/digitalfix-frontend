@@ -47,6 +47,7 @@ export class ServicioAutenticacion {
       Admin:      'Administrador',
       Operador: 'Operador',
       Cliente:    'Cliente',
+      Auditor: 'Auditor',
     };
     for (const [rol, etiqueta] of Object.entries(mapa)) {
       if (this.tieneRol(rol)) return etiqueta;

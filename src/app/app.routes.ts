@@ -7,12 +7,19 @@ import { PaginaAccesoDenegado } from './pages/acceso-denegado/acceso-denegado';
 
 import { PaginaDashboard } from './pages/dashboard/dashboard';
 import { PaginaWorkOrders } from './pages/workorders/workorders';
+import { PaginaHistorial } from './pages/historial/historial';
 import { PaginaServicios } from './pages/catalog/servicios/servicios';
 import { PaginaRepuestos } from './pages/catalog/repuestos/repuestos';
 
 import { protegerPorRol } from './guards/roles.guard';
 
 export const routes: Routes = [
+  {
+    path: 'historial',
+    component: PaginaHistorial,
+    canActivate: [protegerPorRol],
+    data: { roles: ['Admin', 'Auditor'] },
+  },
   // Página pública desde donde el usuario puede iniciar sesión.
   {
     path: '',

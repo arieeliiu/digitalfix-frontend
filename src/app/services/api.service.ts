@@ -7,6 +7,23 @@ export interface RespuestaAcceso {
   mensaje: string;
 }
 
+export interface EventoHistorial {
+  eventId: string;
+  tipo: string;
+  ordenId: number;
+  accion: string;
+  estadoAnterior: string | null;
+  estadoNuevo: string | null;
+  actorId: string;
+  actorRoles: string | null;
+  fecha: string;
+  recibidoEn: string;
+  correlationId: string;
+  kafkaTopico: string | null;
+  kafkaParticion: number | null;
+  kafkaOffset: number | null;
+}
+
 export interface ServicioCatalogo {
   id: number;
   nombre: string;
@@ -102,6 +119,10 @@ export class ServicioApi {
         `${this.baseUrl()}/api/perfil`
       )
     );
+  }
+
+  consultarHistorial(id: number): Observable<EventoHistorial[]> {
+    return defer(() => this.http.get<EventoHistorial[]>(`${this.baseUrl()}/api/workorders/${id}/history`));
   }
 
   listarServicios(): Observable<ServicioCatalogo[]> {

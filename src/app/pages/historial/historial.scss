@@ -1,0 +1,9 @@
+:host { display: block; }
+.consulta { display: flex; align-items: end; flex-wrap: wrap; gap: var(--df-esp-4); margin: 24px 0; }
+.campo { max-width: 260px; }
+.ayuda, time, details { color: var(--df-texto-secundario); font-size: 14px; }
+.timeline { padding: 0 0 0 22px; list-style: none; border-left: 2px solid var(--df-borde); }
+.timeline li { padding: 18px; margin: 16px 0; background: var(--df-superficie); border: 1px solid var(--df-borde); border-radius: 12px; }
+.timeline h3 { margin: 8px 0; font-size: 17px; }
+.identificador { overflow-wrap: anywhere; }
+summary { cursor: pointer; }
