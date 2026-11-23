@@ -1,6 +1,7 @@
 import { Component, computed, ElementRef, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { FormsModule, FormControl, Validators } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ServicioApi, OrdenTrabajo, ServicioCatalogo, EstadoOrden, RepuestoCatalogo, RepuestoOrden } from '../../services/api.service';
 import { BotonIcono } from '../../shared/ui/boton-icono/boton-icono';
@@ -13,7 +14,7 @@ import { ServicioAutenticacion } from '../../services/auth.service';
 import { mensajeErrorApi } from '../../services/error-api';
 
 @Component({
-  selector: 'app-workorders', imports: [FormsModule, CurrencyPipe, DatePipe, BotonIcono, EstadoOrdenBadge, OrdenDesplegable, FiltrosOrdenes, SelectorEstado, Cantidad],
+  selector: 'app-workorders', imports: [RouterLink, FormsModule, CurrencyPipe, DatePipe, BotonIcono, EstadoOrdenBadge, OrdenDesplegable, FiltrosOrdenes, SelectorEstado, Cantidad],
   templateUrl: './workorders.html', styleUrl: './workorders.scss',
 })
 export class PaginaWorkOrders implements OnInit {
@@ -49,6 +50,7 @@ export class PaginaWorkOrders implements OnInit {
   protected readonly pendienteCancelar = signal<OrdenTrabajo | null>(null);
   protected readonly ocupado = computed(() => this.cargando() || this.guardando() || this.consultando() || this.cargandoRepuestos());
   protected readonly puedeGestionarEstado = computed(() => this.auth.tieneRol('Admin') || this.auth.tieneRol('Operador'));
+  protected readonly puedeVerHistorial = computed(() => this.auth.tieneRol('Admin') || this.auth.tieneRol('Auditor'));
   protected readonly error = signal('');
   protected readonly mensaje = signal('');
   protected servicioId: number | null = null;

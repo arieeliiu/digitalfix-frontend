@@ -459,3 +459,24 @@ la guía del Paso 6 en `digitalfix-infra`.
 Los cambios del proyecto se desarrollan en ramas independientes y se integran a `main` mediante Pull Request.
 
 La rama `main` representa la versión estable utilizada para la entrega.
+# Historial de órdenes
+
+Admin y Auditor disponen del menú **Historial de órdenes**. Admin también puede
+abrirlo con **Ver historial** desde el detalle desplegado de una orden; el enlace
+`/historial?orden=42` consulta automáticamente su historial. Auditor conserva una
+pantalla de lectura por número de orden sin acceso a crear, listar o editar órdenes.
+Cliente y Operador no pueden entrar a esta ruta. El BFF aplica los mismos permisos;
+el guard de Angular solo adapta la navegación.
+
+La vista muestra fecha, cambio, actor, estados y referencia técnica desplegable,
+con carga, vacío, error y reintento. **Actualizar** consulta de nuevo el BFF después
+de un cambio de estado: Kafka y Audit son asíncronos. También permite consultar
+órdenes eliminadas. No se conecta a Kafka desde el navegador.
+
+Depende de BFF #23 (`/api/workorders/{id}/history`) y Audit PR #5. Se verificaron
+200 pruebas y la build de producción. La build avisa que el bundle inicial supera
+500 kB (730,86 kB; límite de error 1 MB), sin impedir su generación.
+Infra #19 ejecuta además `historial-real.spec.ts`: renderiza esta vista en Vitest
+y consulta BFF/Audit reales, con H2 y JWT local. No reemplaza la prueba manual de
+MSAL/Entra en navegador ni valida Oracle.
+

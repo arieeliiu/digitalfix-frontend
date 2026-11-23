@@ -134,6 +134,9 @@
                 (alternar)="alternarOrden(orden.id)"
               >
                 <div class="acciones-orden">
+                  @if (puedeVerHistorial()) {
+                    <a class="btn btn-secundario" routerLink="/historial" [queryParams]="{ orden: orden.id }">Ver historial</a>
+                  }
                   <!-- Si toca asignar técnico, el botón lo dice; si no, abre el detalle para consultar. -->
                   <button type="button" class="btn btn-secundario" (click)="consultar(orden.id)" [disabled]="ocupado()">
                     {{ porAsignar(orden) ? 'Asignar' : 'Consultar' }}

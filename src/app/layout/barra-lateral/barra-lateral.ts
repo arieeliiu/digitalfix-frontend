@@ -19,6 +19,7 @@ const ENLACES: EnlaceNavegacion[] = [
   { ruta: '/workorders', etiqueta: 'Órdenes de trabajo', icono: 'ordenes', roles: ['Admin', 'Operador', 'Cliente'] },
   { ruta: '/catalog/servicios', etiqueta: 'Servicios', icono: 'servicios', roles: ['Admin', 'Operador'] },
   { ruta: '/catalog/repuestos', etiqueta: 'Repuestos', icono: 'repuestos', roles: ['Admin', 'Operador'] },
+  { ruta: '/historial', etiqueta: 'Historial de órdenes', icono: 'ordenes', roles: ['Admin', 'Auditor'] },
 ];
 
 @Component({

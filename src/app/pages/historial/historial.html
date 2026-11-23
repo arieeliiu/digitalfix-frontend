@@ -1,0 +1,37 @@
+<main class="pagina" [attr.aria-busy]="cargando()">
+  <header class="encabezado-pagina"><h1>Historial de órdenes</h1></header>
+  <p>Consulta los cambios registrados de una orden, incluso si fue eliminada.</p>
+  <form (ngSubmit)="consultar()" class="consulta">
+    <div class="campo">
+      <label for="orden-historial">Número de orden</label>
+      <input id="orden-historial" name="orden" type="number" min="1" step="1" required
+        [(ngModel)]="ordenId" [disabled]="cargando()" />
+    </div>
+    <button type="submit" class="btn btn-primario" [disabled]="cargando()">{{ consultada() === ordenId ? 'Actualizar' : 'Consultar' }}</button>
+  </form>
+  @if (error()) { <p class="mensaje-error" role="alert">{{ error() }}</p> }
+  @if (cargando()) { <p role="status">Cargando historial…</p> }
+  @if (consultada(); as id) {
+    <section aria-labelledby="titulo-historial" aria-live="polite">
+      <h2 id="titulo-historial">Orden #{{ id }}</h2>
+      <p class="ayuda">Los eventos pueden tardar unos segundos en aparecer. Usa Actualizar después de realizar cambios.</p>
+      @if (eventos().length === 0) { <p role="status">Esta orden todavía no tiene eventos registrados.</p> }
+      <ol class="timeline">
+        @for (evento of eventos(); track evento.eventId) {
+          <li>
+            <time [attr.datetime]="evento.fecha">{{ evento.fecha | date: 'dd/MM/yyyy HH:mm:ss' }}</time>
+            <h3>{{ etiqueta(evento.tipo) }}</h3>
+            <p>Actor: <span class="identificador">{{ evento.actorId }}</span> @if (evento.actorRoles) { ({{ evento.actorRoles }}) }</p>
+            @if (evento.estadoAnterior !== evento.estadoNuevo) {
+              <p>{{ evento.estadoAnterior || 'Sin estado' }} → {{ evento.estadoNuevo || 'Sin estado' }}</p>
+            } @else if (evento.estadoNuevo) { <p>Estado: {{ evento.estadoNuevo }}</p> }
+            <details><summary>Referencia del evento</summary>
+              <p class="identificador">{{ evento.eventId }}</p>
+              <p>{{ evento.kafkaTopico || 'Origen histórico' }} · partición {{ evento.kafkaParticion }} · offset {{ evento.kafkaOffset }}</p>
+            </details>
+          </li>
+        }
+      </ol>
+    </section>
+  }
+</main>

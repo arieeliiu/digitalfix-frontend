@@ -54,10 +54,10 @@ describe('Barra lateral', () => {
   }
 
   it.each([
-    ['Admin', ['Dashboard', 'Órdenes de trabajo', 'Servicios', 'Repuestos']],
+    ['Admin', ['Dashboard', 'Órdenes de trabajo', 'Servicios', 'Repuestos', 'Historial de órdenes']],
     ['Operador', ['Dashboard', 'Órdenes de trabajo', 'Servicios', 'Repuestos']],
     ['Cliente', ['Dashboard', 'Órdenes de trabajo']],
-    ['Auditor', ['Dashboard']],
+    ['Auditor', ['Dashboard', 'Historial de órdenes']],
   ])('muestra al rol %s solo los módulos a los que puede entrar', (rol, esperados) => {
     roles.set([rol]);
     const { root } = crear();
